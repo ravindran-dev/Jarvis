@@ -42,67 +42,67 @@ Jarvis is a gorgeous terminal-based system monitoring and management tool for Li
 ## Screenshots
 
 ### Metrics Dashboard
-```
-┌──────────────────────────── ⚡ Jarvis - System Monitor ⚡ ────────────────────────────┐
-│ Storage │ Metrics │ Commands │ Settings                                              │
-└──────────────────────────────────────────────────────────────────────────────────────┘
-┌─ CPU Cores ──────────────────────────┐┌─ Memory ──────────────────────────┐
-│ CPU Cores - Overall Usage:  4.2%     ││  RAM Total:        15.3 GB        │
-│ ══════════════════════════════════   ││  RAM Used:          7.36 GB       │
-│  CPU 0   [===============     ] 3.2% ││  RAM Available:     7.89 GB       │
-│  CPU 1   [=====           ]   1.2%   ││                                   │
-│  CPU 2   [==========        ]  2.8%  ││  Memory: [=============      ]    │
-│  CPU 3   [=              ]    0.5%   ││          48.3%                   │
-│                                     ││  Swap:  358 MB / 4.00 GB         │
-└─────────────────────────────────────┘└──────────────────────────────────┘
-┌─ Disks ────────────────────────────────┐┌─ Network ────────────────────────────┐
-│ Disk Usage Summary                     ││ Network Status                       │
-│                                        ││                                      │
-│  * /         : [====           ] 23%  ││  Received (Down):       10.9 GB      │
-│    123 GB / 500 GB                    ││  Sent (Up):              615 MB      │
-│                                        ││                                      │
-│  * /home     : [========       ] 41%  ││  RX Rate:  4.78 KB/s                │
-│    400 GB / 932 GB                    ││  TX Rate:  588 B/s                   │
-│                                        ││                                      │
-│  * /boot     : [         ]     9%     ││  Temperature: 61.8'C                 │
-│    170 MB / 1.80 GB                   ││                                      │
-└────────────────────────────────────────┘└──────────────────────────────────┘
-│ CPU Usage: 23.4%      ││ Total: 16.00 GB            │
-│                       ││ Used:  8.24 GB             │
-│ Core  0: ████░░░░░░   ││ Free:  7.76 GB             │
-│ Core  1: ██████░░░░   ││                            │
-│ Core  2: ███░░░░░░░   ││ ███████████████░░░░░░      │
-│ Core  3: █████░░░░░   ││ 51.5%                      │
-│                       ││                            │
-│                       ││ Swap: 512.00 MB / 2.00 GB  │
-└───────────────────────┘└────────────────────────────┘
+``` mathematica
+┌────────────────────────────  Jarvis - System Monitor  ────────────────────────────┐
+│ Storage │ Metrics │ Commands │ Settings                                           │
+└───────────────────────────────────────────────────────────────────────────────────┘
+┌─ CPU Cores ──────────────────────────┐┌─ Memory ──────────────────────────────────┐
+│ CPU Cores - Overall Usage:  4.2%     ││  RAM Total:        15.3 GB                │
+│ ══════════════════════════════════   ││  RAM Used:          7.36 GB               │
+│  CPU 0   [===============     ] 3.2% ││  RAM Available:     7.89 GB               │
+│  CPU 1   [=====           ]   1.2%   ││                                           │
+│  CPU 2   [==========        ]  2.8%  ││  Memory: [=============      ]            │
+│  CPU 3   [=              ]    0.5%   ││          48.3%                            │
+│                                      ││  Swap:  358 MB / 4.00 GB                  │
+└──────────────────────────────────────┘└───────────────────────────────────────────┘
+┌─ Disks ──────────────────────────────┐┌─ Network ─────────────────────────────────┐
+│ Disk Usage Summary                   ││ Network Status                            │
+│                                      ││                                           │
+│  * /         : [====           ] 23% ││  Received (Down):       10.9 GB           │
+│    123 GB / 500 GB                   ││  Sent (Up):              615 MB           │
+│                                      ││                                           │
+│  * /home     : [========       ] 41% ││  RX Rate:  4.78 KB/s                      │
+│    400 GB / 932 GB                   ││  TX Rate:  588 B/s                        │
+│                                      ││                                           │
+│  * /boot     : [         ]     9%    ││  Temperature: 61.8'C                      │
+│    170 MB / 1.80 GB                  ││                                           │
+└──────────────────────────────────────┘└───────────────────────────────────────────┘
+│ CPU Usage: 23.4%                     ││ Total: 16.00 GB                           │
+│                                      ││ Used:  8.24 GB                            │
+│ Core  0: ████░░░░░░                  ││ Free:  7.76 GB                            │
+│ Core  1: ██████░░░░                  ││                                           │
+│ Core  2: ███░░░░░░░                  ││ ███████████████░░░░░░                     │
+│ Core  3: █████░░░░░                  ││ 51.5%                                     │
+│                                      ││                                           │
+│                                      ││ Swap: 512.00 MB / 2.00 GB                 │
+└──────────────────────────────────────┘└───────────────────────────────────────────┘
 ```
 
 ### Storage Analysis
-```
+``` mathematica
 ┌─ Directory Sizes (Largest First) ─────────────────────────────┐
-│ Path                              │ Size      │ Files          │
-├───────────────────────────────────┼───────────┼────────────────┤
-│ /home/user/.cache                 │ 4.23 GB   │ 18,432         │
-│ /var/log                          │ 2.15 GB   │ 3,421          │
-│ /var/lib/docker                   │ 15.87 GB  │ 52,103         │
+│ Path                              │ Size      │ Files         │
+├───────────────────────────────────┼───────────┼───────────────┤
+│ /home/user/.cache                 │ 4.23 GB   │ 18,432        │
+│ /var/log                          │ 2.15 GB   │ 3,421         │
+│ /var/lib/docker                   │ 15.87 GB  │ 52,103        │
 └───────────────────────────────────────────────────────────────┘
 ```
 
 ### Command Assistant
-```
+```mathematica
 ┌─ Search ──────────────────────────────────────────────────────┐
-│ Search: disk usage█                                            │
+│ Search: disk usage█                                           │
 └───────────────────────────────────────────────────────────────┘
 ┌─ Commands ────────────────────────────────────────────────────┐
 │ df -h - Display disk space usage in human-readable format     │
-│   Example: df -h                                               │
-│                                                                 │
-│ du -sh * - Show disk usage of directories in current path      │
-│   Example: du -sh /var/log/*                                   │
-│                                                                 │
-│ ncdu - Interactive disk usage analyzer                         │
-│   Example: ncdu /var                                           │
+│   Example: df -h                                              │
+│                                                               │
+│ du -sh * - Show disk usage of directories in current path     │
+│   Example: du -sh /var/log/*                                  │
+│                                                               │
+│ ncdu - Interactive disk usage analyzer                        │
+│   Example: ncdu /var                                          │
 └───────────────────────────────────────────────────────────────┘
 ```
 
@@ -117,14 +117,14 @@ Jarvis is a gorgeous terminal-based system monitoring and management tool for Li
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/systide.git
-cd systide
+git clone https://github.com/ravindran-dev/Jarvis.git
+cd Jarvis
 
 # Build in release mode
 cargo build --release
 
-# The binary will be at target/release/systide
-./target/release/systide
+# The binary will be at target/release/Jarvis
+./target/release/Jarvis
 
 # Optional: Install to system
 cargo install --path .
@@ -149,10 +149,10 @@ SysTide automatically handles all Rust dependencies through Cargo:
 
 ```bash
 # Start the application
-systide
+Jarvis
 
 # With verbose logging
-RUST_LOG=debug systide
+RUST_LOG=debug Jarvis
 ```
 
 ### Keyboard Navigation
@@ -187,7 +187,7 @@ RUST_LOG=debug systide
 
 SysTide looks for a custom command database at:
 ```
-~/.config/systide/commands.json
+~/.config/Jarvis/commands.json
 ```
 
 Create this file to add your own commands:
@@ -216,8 +216,8 @@ export RUST_LOG=info    # info, debug, warn, error
 
 ### Project Structure
 
-```
-systide/
+``` mathemtica
+Jarvis/
 ├── src/
 │   ├── main.rs              # Application entry point
 │   ├── app.rs               # Core application state & event loop
@@ -285,7 +285,7 @@ systide/
 
 ## Performance
 
-SysTide is designed for efficiency:
+Jarvis is designed for efficiency:
 
 - **Parallel Processing**: Directory scanning uses Rayon for multi-core utilization
 - **Non-blocking I/O**: Storage scans run in background threads
@@ -331,7 +331,7 @@ cargo clippy
 Implement the `Plugin` trait:
 
 ```rust
-use systide::plugins::Plugin;
+use Jarvis::plugins::Plugin;
 
 pub struct MyPlugin {
     name: String,
@@ -361,25 +361,6 @@ let plugin = Box::new(MyPlugin::new());
 app.plugins.register(plugin);
 ```
 
-## Roadmap
-
-### Version 0.2.0
-- [ ] Process management (kill, nice, etc.)
-- [ ] Exportable reports (JSON, CSV)
-- [ ] Theme customization
-- [ ] Configurable refresh intervals
-
-### Version 0.3.0
-- [ ] Network interface details
-- [ ] Service manager integration
-- [ ] Docker container management
-- [ ] Custom dashboard layouts
-
-### Version 1.0.0
-- [ ] Dynamic plugin loading
-- [ ] Web-based remote monitoring
-- [ ] Alert and notification system
-- [ ] Historical data tracking
 
 ## Contributing
 
@@ -409,7 +390,7 @@ sudo modprobe k10temp   # AMD
 
 Some metrics require elevated privileges:
 ```bash
-sudo systide
+sudo Jarvis
 ```
 
 ### Storage scan too slow
@@ -427,16 +408,32 @@ let scan_paths = vec![
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+##  Author - **Ravindran S**
 
-- Built with [ratatui](https://github.com/ratatui-org/ratatui) - Amazing TUI framework
-- Inspired by [btm](https://github.com/ClementTsang/bottom) and [htop](https://htop.dev/)
-- Linux community for excellent tools and documentation
+Developer • AI/ML Enthusiast • Linux Power User  
+Crafting professional CLI experiences with simplicity and power.
 
-## Author
+## 🔗 Connect With Me
 
-Built with by Ravindran S
+You can reach me here:
 
----
+###  **Socials**
+<a href="www.linkedin.com/in/ravindran-s-982702327" target="_blank">
+  <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white">
+</a>
 
-**Note**: This is a production-quality implementation designed for real-world use. All modules are fully functional and follow Rust best practices. For questions or issues, please open a GitHub issue.
+
+<a href="https://github.com/ravindran-dev" target="_blank">
+  <img src="https://img.shields.io/badge/GitHub-111111?style=for-the-badge&logo=github&logoColor=white">
+</a>
+
+
+###  **Contact**
+<a href="mailto:ravindrans.dev@gmail.com" target="_blank">
+  <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white">
+</a>
+
+<a href="mailto:ravindrans.dev@gmail.com" target="_blank">
+  <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white">
+</a>
+
