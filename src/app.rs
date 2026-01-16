@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use crate::commands::CommandIndex;
 use crate::plugins::PluginManager;
 use crate::system::{metrics::SystemMetrics, storage::StorageAnalyzer};
+use crate::theme::Theme;
 use crate::ui::layout;
 
 /// Represents the different screens/views in the application
@@ -65,6 +66,12 @@ pub struct App {
     pub commands: CommandIndex,
     /// Plugin manager
     pub plugins: PluginManager,
+    /// Current theme
+    pub theme: Theme,
+    /// Available themes
+    themes: Vec<Theme>,
+    /// Current theme index
+    current_theme_index: usize,
     /// Last time metrics were updated
     last_update: Instant,
     /// Update interval in milliseconds
@@ -88,6 +95,8 @@ impl App {
         let storage = StorageAnalyzer::new()?;
         let commands = CommandIndex::new()?;
         let plugins = PluginManager::new();
+        let themes = Theme::all();
+        let theme = themes[0].clone();
 
         Ok(Self {
             should_quit: false,
@@ -96,6 +105,9 @@ impl App {
             storage,
             commands,
             plugins,
+            theme,
+            themes,
+            current_theme_index: 0,
             last_update: Instant::now(),
             update_interval: Duration::from_secs(1),
             selected_index: 0,
@@ -229,6 +241,23 @@ impl App {
                 // Refresh/rescan
                 self.handle_refresh()?;
             }
+            KeyCode::Char('>') | KeyCode::Right => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.next_theme();
+                    info!("Switched to next theme: {}", self.theme.name);
+                }
+            }
+            KeyCode::Char('<') | KeyCode::Left => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.previous_theme();
+                    info!("Switched to previous theme: {}", self.theme.name);
+                }
+            }
+            KeyCode::Char('t') | KeyCode::Char('T') => {
+                // Toggle through themes (without modifier for ease of use)
+                self.next_theme();
+                info!("Switched to next theme: {}", self.theme.name);
+            }
 
             _ => {}
         }
@@ -321,5 +350,33 @@ impl App {
             _ => {}
         }
         Ok(())
+    }
+
+    /// Cycle to next theme
+    pub fn next_theme(&mut self) {
+        self.current_theme_index = (self.current_theme_index + 1) % self.themes.len();
+        self.theme = self.themes[self.current_theme_index].clone();
+        info!("Switched to theme: {}", self.theme.name);
+    }
+
+    /// Cycle to previous theme
+    pub fn previous_theme(&mut self) {
+        if self.current_theme_index == 0 {
+            self.current_theme_index = self.themes.len() - 1;
+        } else {
+            self.current_theme_index -= 1;
+        }
+        self.theme = self.themes[self.current_theme_index].clone();
+        info!("Switched to theme: {}", self.theme.name);
+    }
+
+    /// Get all available themes
+    pub fn get_available_themes(&self) -> &[Theme] {
+        &self.themes
+    }
+
+    /// Get current theme index
+    pub fn get_current_theme_index(&self) -> usize {
+        self.current_theme_index
     }
 }

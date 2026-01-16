@@ -1,5 +1,9 @@
+pub mod loader;
+
 use log::debug;
 use std::collections::HashMap;
+
+pub use loader::{PluginLoader, PluginInfo};
 
 /// Plugin trait for extensibility
 #[allow(dead_code)]

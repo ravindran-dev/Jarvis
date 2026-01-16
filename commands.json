@@ -1,587 +1,59 @@
 [
   {
-    "command": "ls -lah",
-    "description": "List all files with details and human-readable sizes",
-    "example": "ls -lah /var/log",
-    "category": "Files",
+    "command": "uname -a",
+    "description": "Show complete system and kernel information",
+    "example": "uname -a",
+    "category": "System",
     "dangerous": false,
-    "tags": ["list", "files", "directory"]
+    "tags": ["system", "kernel", "info", "architecture"]
   },
   {
-    "command": "cd",
-    "description": "Change directory",
-    "example": "cd /var/log",
-    "category": "Navigation",
+    "command": "lscpu",
+    "description": "Display CPU architecture and core information",
+    "example": "lscpu",
+    "category": "System",
     "dangerous": false,
-    "tags": ["navigate", "directory"]
+    "tags": ["cpu", "hardware", "info"]
   },
   {
-    "command": "pwd",
-    "description": "Print working directory path",
-    "example": "pwd",
-    "category": "Navigation",
-    "dangerous": false,
-    "tags": ["path", "directory", "location"]
-  },
-  {
-    "command": "df -h",
-    "description": "Display disk space usage in human-readable format",
-    "example": "df -h",
+    "command": "lsblk",
+    "description": "List block devices and partitions",
+    "example": "lsblk",
     "category": "Disk",
     "dangerous": false,
-    "tags": ["disk", "space", "storage", "filesystem"]
-  },
-  {
-    "command": "du -sh *",
-    "description": "Show disk usage of directories in current path",
-    "example": "du -sh /var/log/*",
-    "category": "Disk",
-    "dangerous": false,
-    "tags": ["disk", "usage", "directory", "size"]
+    "tags": ["disk", "partition", "device"]
   },
   {
     "command": "free -h",
-    "description": "Display memory usage statistics",
+    "description": "Display memory usage in human readable format",
     "example": "free -h",
     "category": "Memory",
     "dangerous": false,
     "tags": ["memory", "ram", "swap"]
   },
   {
-    "command": "top",
-    "description": "Real-time view of running processes",
-    "example": "top",
-    "category": "Process",
+    "command": "df -h",
+    "description": "Display filesystem disk usage",
+    "example": "df -h",
+    "category": "Disk",
     "dangerous": false,
-    "tags": ["process", "cpu", "monitor", "performance"]
+    "tags": ["disk", "storage", "filesystem"]
   },
   {
-    "command": "htop",
-    "description": "Interactive process viewer with better UI",
-    "example": "htop",
-    "category": "Process",
+    "command": "du -sh /path",
+    "description": "Show total size of a directory",
+    "example": "du -sh /var/log",
+    "category": "Disk",
     "dangerous": false,
-    "tags": ["process", "cpu", "monitor", "interactive"]
+    "tags": ["disk", "directory", "size"]
   },
   {
-    "command": "ps aux",
-    "description": "List all running processes with details",
-    "example": "ps aux | grep nginx",
-    "category": "Process",
+    "command": "du -h | sort -hr | head -10",
+    "description": "Show largest directories first",
+    "example": "du -h /home | sort -hr | head -10",
+    "category": "Disk",
     "dangerous": false,
-    "tags": ["process", "list", "search"]
-  },
-  {
-    "command": "ps -ef",
-    "description": "List all processes with full format",
-    "example": "ps -ef | grep java",
-    "category": "Process",
-    "dangerous": false,
-    "tags": ["process", "list", "full"]
-  },
-  {
-    "command": "kill -9",
-    "description": "Force kill a process by PID",
-    "example": "kill -9 1234",
-    "category": "Process",
-    "dangerous": true,
-    "tags": ["kill", "process", "terminate"]
-  },
-  {
-    "command": "killall",
-    "description": "Kill all processes by name",
-    "example": "killall firefox",
-    "category": "Process",
-    "dangerous": true,
-    "tags": ["kill", "process", "name"]
-  },
-  {
-    "command": "pkill",
-    "description": "Kill processes by pattern matching",
-    "example": "pkill -f python",
-    "category": "Process",
-    "dangerous": true,
-    "tags": ["kill", "process", "pattern"]
-  },
-  {
-    "command": "netstat -tuln",
-    "description": "Show listening ports and connections",
-    "example": "netstat -tuln",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "port", "connection", "listening"]
-  },
-  {
-    "command": "ss -tuln",
-    "description": "Modern socket statistics (replaces netstat)",
-    "example": "ss -tuln",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "socket", "connection"]
-  },
-  {
-    "command": "ip addr show",
-    "description": "Display IP addresses of network interfaces",
-    "example": "ip addr show",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "ip", "interface"]
-  },
-  {
-    "command": "ip link show",
-    "description": "Display network interface link status",
-    "example": "ip link show",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "interface", "link"]
-  },
-  {
-    "command": "ip route show",
-    "description": "Display routing table",
-    "example": "ip route show",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "route", "gateway"]
-  },
-  {
-    "command": "ping",
-    "description": "Test network connectivity to a host",
-    "example": "ping -c 4 google.com",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "connectivity", "test"]
-  },
-  {
-    "command": "curl",
-    "description": "Transfer data from or to a server",
-    "example": "curl -I https://example.com",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["http", "download", "api"]
-  },
-  {
-    "command": "wget",
-    "description": "Download files from the web",
-    "example": "wget https://example.com/file.zip",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["download", "http", "file"]
-  },
-  {
-    "command": "lsof -i",
-    "description": "List open network connections",
-    "example": "lsof -i :80",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "port", "connection", "file"]
-  },
-  {
-    "command": "nslookup",
-    "description": "Query DNS to obtain domain or IP mapping",
-    "example": "nslookup google.com",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["dns", "lookup", "domain"]
-  },
-  {
-    "command": "dig",
-    "description": "DNS lookup utility",
-    "example": "dig google.com",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["dns", "lookup", "query"]
-  },
-  {
-    "command": "traceroute",
-    "description": "Trace the route packets take to a host",
-    "example": "traceroute google.com",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "route", "trace"]
-  },
-  {
-    "command": "journalctl -xe",
-    "description": "View system logs with error explanations",
-    "example": "journalctl -xe",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "systemd", "error", "debug"]
-  },
-  {
-    "command": "journalctl -f",
-    "description": "Follow system journal in real-time",
-    "example": "journalctl -f -u nginx",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "watch", "monitor", "systemd"]
-  },
-  {
-    "command": "journalctl -u",
-    "description": "View logs for a specific service",
-    "example": "journalctl -u nginx.service",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "service", "systemd"]
-  },
-  {
-    "command": "tail -f",
-    "description": "Follow log file output in real-time",
-    "example": "tail -f /var/log/syslog",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "watch", "monitor", "file"]
-  },
-  {
-    "command": "tail -n",
-    "description": "Display last N lines of a file",
-    "example": "tail -n 100 /var/log/syslog",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "file", "view"]
-  },
-  {
-    "command": "head -n",
-    "description": "Display first N lines of a file",
-    "example": "head -n 20 /var/log/syslog",
-    "category": "Logs",
-    "dangerous": false,
-    "tags": ["log", "file", "view"]
-  },
-  {
-    "command": "cat",
-    "description": "Display file contents",
-    "example": "cat /etc/hosts",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["view", "file", "read"]
-  },
-  {
-    "command": "less",
-    "description": "View file contents with pagination",
-    "example": "less /var/log/syslog",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["view", "file", "pager"]
-  },
-  {
-    "command": "more",
-    "description": "View file contents page by page",
-    "example": "more /var/log/syslog",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["view", "file", "pager"]
-  },
-  {
-    "command": "systemctl status",
-    "description": "Show status of a systemd service",
-    "example": "systemctl status nginx",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["systemd", "service", "status"]
-  },
-  {
-    "command": "systemctl start",
-    "description": "Start a systemd service",
-    "example": "systemctl start nginx",
-    "category": "System",
-    "dangerous": true,
-    "tags": ["systemd", "service", "start"]
-  },
-  {
-    "command": "systemctl stop",
-    "description": "Stop a systemd service",
-    "example": "systemctl stop nginx",
-    "category": "System",
-    "dangerous": true,
-    "tags": ["systemd", "service", "stop"]
-  },
-  {
-    "command": "systemctl restart",
-    "description": "Restart a systemd service",
-    "example": "systemctl restart nginx",
-    "category": "System",
-    "dangerous": true,
-    "tags": ["systemd", "service", "restart"]
-  },
-  {
-    "command": "systemctl enable",
-    "description": "Enable service to start on boot",
-    "example": "systemctl enable nginx",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["systemd", "service", "autostart"]
-  },
-  {
-    "command": "systemctl disable",
-    "description": "Disable service from starting on boot",
-    "example": "systemctl disable nginx",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["systemd", "service", "autostart"]
-  },
-  {
-    "command": "systemctl list-units",
-    "description": "List all active systemd units",
-    "example": "systemctl list-units --type=service",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["systemd", "service", "list"]
-  },
-  {
-    "command": "docker ps",
-    "description": "List running Docker containers",
-    "example": "docker ps -a",
-    "category": "Docker",
-    "dangerous": false,
-    "tags": ["docker", "container", "list"]
-  },
-  {
-    "command": "docker images",
-    "description": "List Docker images",
-    "example": "docker images",
-    "category": "Docker",
-    "dangerous": false,
-    "tags": ["docker", "image", "list"]
-  },
-  {
-    "command": "docker logs",
-    "description": "View logs from a Docker container",
-    "example": "docker logs -f container_name",
-    "category": "Docker",
-    "dangerous": false,
-    "tags": ["docker", "log", "container"]
-  },
-  {
-    "command": "docker exec",
-    "description": "Execute command in running container",
-    "example": "docker exec -it container_name bash",
-    "category": "Docker",
-    "dangerous": false,
-    "tags": ["docker", "container", "execute"]
-  },
-  {
-    "command": "docker stop",
-    "description": "Stop a running container",
-    "example": "docker stop container_name",
-    "category": "Docker",
-    "dangerous": true,
-    "tags": ["docker", "container", "stop"]
-  },
-  {
-    "command": "docker rm",
-    "description": "Remove a stopped container",
-    "example": "docker rm container_name",
-    "category": "Docker",
-    "dangerous": true,
-    "tags": ["docker", "container", "remove"]
-  },
-  {
-    "command": "docker rmi",
-    "description": "Remove a Docker image",
-    "example": "docker rmi image_name",
-    "category": "Docker",
-    "dangerous": true,
-    "tags": ["docker", "image", "remove"]
-  },
-  {
-    "command": "docker system prune",
-    "description": "Remove unused Docker data",
-    "example": "docker system prune -a",
-    "category": "Docker",
-    "dangerous": true,
-    "tags": ["docker", "cleanup", "disk"]
-  },
-  {
-    "command": "docker-compose up",
-    "description": "Start services defined in docker-compose.yml",
-    "example": "docker-compose up -d",
-    "category": "Docker",
-    "dangerous": false,
-    "tags": ["docker", "compose", "start"]
-  },
-  {
-    "command": "docker-compose down",
-    "description": "Stop and remove containers defined in docker-compose",
-    "example": "docker-compose down",
-    "category": "Docker",
-    "dangerous": true,
-    "tags": ["docker", "compose", "stop"]
-  },
-  {
-    "command": "find . -name",
-    "description": "Search for files by name pattern",
-    "example": "find . -name '*.log'",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["find", "search", "file"]
-  },
-  {
-    "command": "find . -type f",
-    "description": "Find all files in directory tree",
-    "example": "find /var/log -type f -mtime +7",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["find", "search", "file"]
-  },
-  {
-    "command": "find . -size",
-    "description": "Find files by size",
-    "example": "find . -size +100M",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["find", "search", "size"]
-  },
-  {
-    "command": "grep -r",
-    "description": "Search for text in files recursively",
-    "example": "grep -r 'error' /var/log",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["search", "text", "grep"]
-  },
-  {
-    "command": "grep -i",
-    "description": "Search for text case-insensitively",
-    "example": "grep -i 'error' file.log",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["search", "text", "grep"]
-  },
-  {
-    "command": "grep -v",
-    "description": "Invert match - show lines that don't match",
-    "example": "grep -v 'INFO' file.log",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["search", "text", "grep", "filter"]
-  },
-  {
-    "command": "awk",
-    "description": "Pattern scanning and text processing",
-    "example": "awk '{print $1}' file.txt",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "process", "column"]
-  },
-  {
-    "command": "sed",
-    "description": "Stream editor for filtering and transforming text",
-    "example": "sed 's/old/new/g' file.txt",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "replace", "edit"]
-  },
-  {
-    "command": "cut",
-    "description": "Extract sections from lines of files",
-    "example": "cut -d: -f1 /etc/passwd",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "extract", "column"]
-  },
-  {
-    "command": "sort",
-    "description": "Sort lines of text files",
-    "example": "sort -n file.txt",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "sort"]
-  },
-  {
-    "command": "uniq",
-    "description": "Report or omit repeated lines",
-    "example": "sort file.txt | uniq",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "unique", "duplicate"]
-  },
-  {
-    "command": "wc -l",
-    "description": "Count lines in a file",
-    "example": "wc -l /var/log/syslog",
-    "category": "Text",
-    "dangerous": false,
-    "tags": ["text", "count", "lines"]
-  },
-  {
-    "command": "tar -czf",
-    "description": "Create compressed tar archive",
-    "example": "tar -czf archive.tar.gz /path/to/dir",
-    "category": "Archive",
-    "dangerous": false,
-    "tags": ["compress", "archive", "backup"]
-  },
-  {
-    "command": "tar -xzf",
-    "description": "Extract compressed tar archive",
-    "example": "tar -xzf archive.tar.gz",
-    "category": "Archive",
-    "dangerous": false,
-    "tags": ["extract", "archive", "decompress"]
-  },
-  {
-    "command": "zip -r",
-    "description": "Create zip archive recursively",
-    "example": "zip -r archive.zip /path/to/dir",
-    "category": "Archive",
-    "dangerous": false,
-    "tags": ["compress", "archive", "zip"]
-  },
-  {
-    "command": "unzip",
-    "description": "Extract zip archive",
-    "example": "unzip archive.zip",
-    "category": "Archive",
-    "dangerous": false,
-    "tags": ["extract", "archive", "unzip"]
-  },
-  {
-    "command": "rsync",
-    "description": "Sync files and directories efficiently",
-    "example": "rsync -avz source/ dest/",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["sync", "copy", "backup"]
-  },
-  {
-    "command": "scp",
-    "description": "Securely copy files between hosts",
-    "example": "scp file.txt user@host:/path",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["copy", "ssh", "transfer"]
-  },
-  {
-    "command": "ssh",
-    "description": "Connect to remote host securely",
-    "example": "ssh user@hostname",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["remote", "connect", "shell"]
-  },
-  {
-    "command": "chmod",
-    "description": "Change file permissions",
-    "example": "chmod 755 script.sh",
-    "category": "Files",
-    "dangerous": true,
-    "tags": ["permission", "security", "access"]
-  },
-  {
-    "command": "chown",
-    "description": "Change file owner and group",
-    "example": "chown user:group file.txt",
-    "category": "Files",
-    "dangerous": true,
-    "tags": ["owner", "permission", "security"]
-  },
-  {
-    "command": "uname -a",
-    "description": "Display system information",
-    "example": "uname -a",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["system", "info", "kernel", "version"]
+    "tags": ["disk", "analyze", "largest"]
   },
   {
     "command": "uptime",
@@ -589,366 +61,278 @@
     "example": "uptime",
     "category": "System",
     "dangerous": false,
-    "tags": ["system", "uptime", "load"]
-  },
-  {
-    "command": "hostname",
-    "description": "Show or set system hostname",
-    "example": "hostname",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["system", "hostname", "network"]
-  },
-  {
-    "command": "whoami",
-    "description": "Display current username",
-    "example": "whoami",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["user", "identity"]
+    "tags": ["uptime", "load", "system"]
   },
   {
     "command": "who",
-    "description": "Show who is logged in",
+    "description": "Show logged in users",
     "example": "who",
-    "category": "System",
+    "category": "User",
     "dangerous": false,
-    "tags": ["user", "logged in", "session"]
+    "tags": ["user", "login"]
   },
   {
     "command": "w",
-    "description": "Show who is logged in and what they're doing",
+    "description": "Show logged in users and activity",
     "example": "w",
-    "category": "System",
+    "category": "User",
     "dangerous": false,
-    "tags": ["user", "logged in", "activity"]
+    "tags": ["user", "activity"]
   },
   {
-    "command": "last",
-    "description": "Show listing of last logged in users",
-    "example": "last",
-    "category": "System",
+    "command": "ls -lah",
+    "description": "List all files with permissions and sizes",
+    "example": "ls -lah /var/log",
+    "category": "Files",
     "dangerous": false,
-    "tags": ["user", "login", "history"]
+    "tags": ["files", "list", "directory"]
+  },
+  {
+    "command": "cd /path",
+    "description": "Change directory",
+    "example": "cd /etc",
+    "category": "Navigation",
+    "dangerous": false,
+    "tags": ["navigate", "directory"]
+  },
+  {
+    "command": "pwd",
+    "description": "Print current working directory",
+    "example": "pwd",
+    "category": "Navigation",
+    "dangerous": false,
+    "tags": ["path", "directory"]
+  },
+  {
+    "command": "mkdir -p dir",
+    "description": "Create nested directories",
+    "example": "mkdir -p projects/demo",
+    "category": "Files",
+    "dangerous": false,
+    "tags": ["directory", "create"]
+  },
+  {
+    "command": "rm -rf dir",
+    "description": "Delete directory recursively",
+    "example": "rm -rf build/",
+    "category": "Files",
+    "dangerous": true,
+    "tags": ["delete", "danger", "filesystem"]
+  },
+  {
+    "command": "cat file",
+    "description": "Display file contents",
+    "example": "cat /etc/hosts",
+    "category": "Files",
+    "dangerous": false,
+    "tags": ["view", "file"]
+  },
+  {
+    "command": "less file",
+    "description": "View file with pagination",
+    "example": "less large.log",
+    "category": "Files",
+    "dangerous": false,
+    "tags": ["pager", "file"]
+  },
+  {
+    "command": "find /path -name filename",
+    "description": "Search file by name",
+    "example": "find / -name nginx.conf",
+    "category": "Search",
+    "dangerous": false,
+    "tags": ["find", "search"]
+  },
+  {
+    "command": "locate filename",
+    "description": "Quickly locate file using database",
+    "example": "locate passwd",
+    "category": "Search",
+    "dangerous": false,
+    "tags": ["search", "database"]
+  },
+  {
+    "command": "chmod 755 file",
+    "description": "Change file permissions",
+    "example": "chmod 755 script.sh",
+    "category": "Security",
+    "dangerous": true,
+    "tags": ["permission", "security"]
+  },
+  {
+    "command": "chown user:group file",
+    "description": "Change file ownership",
+    "example": "chown root:root config.yml",
+    "category": "Security",
+    "dangerous": true,
+    "tags": ["ownership", "security"]
+  },
+  {
+    "command": "ps aux",
+    "description": "List all running processes",
+    "example": "ps aux | grep nginx",
+    "category": "Process",
+    "dangerous": false,
+    "tags": ["process", "monitor"]
+  },
+  {
+    "command": "top",
+    "description": "Real-time process monitor",
+    "example": "top",
+    "category": "Process",
+    "dangerous": false,
+    "tags": ["cpu", "monitor"]
+  },
+  {
+    "command": "kill -9 PID",
+    "description": "Force kill a process",
+    "example": "kill -9 1234",
+    "category": "Process",
+    "dangerous": true,
+    "tags": ["kill", "danger"]
+  },
+  {
+    "command": "jobs",
+    "description": "List background jobs",
+    "example": "jobs",
+    "category": "Process",
+    "dangerous": false,
+    "tags": ["jobs", "background"]
+  },
+  {
+    "command": "ip addr show",
+    "description": "Show IP addresses of interfaces",
+    "example": "ip addr show",
+    "category": "Network",
+    "dangerous": false,
+    "tags": ["network", "ip"]
+  },
+  {
+    "command": "ping host",
+    "description": "Test network connectivity",
+    "example": "ping google.com",
+    "category": "Network",
+    "dangerous": false,
+    "tags": ["network", "test"]
+  },
+  {
+    "command": "ss -tuln",
+    "description": "List listening ports",
+    "example": "ss -tuln",
+    "category": "Network",
+    "dangerous": false,
+    "tags": ["ports", "network"]
+  },
+  {
+    "command": "scp file user@host:/path",
+    "description": "Secure copy files to remote host",
+    "example": "scp test.txt user@server:/tmp",
+    "category": "Network",
+    "dangerous": false,
+    "tags": ["transfer", "ssh"]
+  },
+  {
+    "command": "rsync -avz src/ dest/",
+    "description": "Synchronize directories efficiently",
+    "example": "rsync -avz backup/ /mnt/backup",
+    "category": "Files",
+    "dangerous": false,
+    "tags": ["sync", "backup"]
+  },
+  {
+    "command": "grep -r pattern path",
+    "description": "Search text recursively",
+    "example": "grep -r error /var/log",
+    "category": "Text",
+    "dangerous": false,
+    "tags": ["search", "text"]
+  },
+  {
+    "command": "awk '{print $1}' file",
+    "description": "Process structured text",
+    "example": "awk '{print $1}' data.txt",
+    "category": "Text",
+    "dangerous": false,
+    "tags": ["text", "process"]
+  },
+  {
+    "command": "sed 's/a/b/g' file",
+    "description": "Replace text patterns",
+    "example": "sed 's/foo/bar/g' test.txt",
+    "category": "Text",
+    "dangerous": false,
+    "tags": ["text", "replace"]
+  },
+  {
+    "command": "tar -czf archive.tar.gz dir",
+    "description": "Create compressed tar archive",
+    "example": "tar -czf backup.tar.gz home/",
+    "category": "Archive",
+    "dangerous": false,
+    "tags": ["archive", "compress"]
+  },
+  {
+    "command": "tar -xzf archive.tar.gz",
+    "description": "Extract tar archive",
+    "example": "tar -xzf backup.tar.gz",
+    "category": "Archive",
+    "dangerous": false,
+    "tags": ["extract", "archive"]
+  },
+  {
+    "command": "journalctl -f",
+    "description": "Follow system logs in real time",
+    "example": "journalctl -f",
+    "category": "Logs",
+    "dangerous": false,
+    "tags": ["logs", "monitor"]
+  },
+  {
+    "command": "dmesg | tail",
+    "description": "View recent kernel messages",
+    "example": "dmesg | tail",
+    "category": "Logs",
+    "dangerous": false,
+    "tags": ["kernel", "logs"]
+  },
+  {
+    "command": "apt update",
+    "description": "Update package lists (Debian based)",
+    "example": "sudo apt update",
+    "category": "Package",
+    "dangerous": false,
+    "tags": ["package", "update"]
+  },
+  {
+    "command": "apt install package",
+    "description": "Install package",
+    "example": "sudo apt install nginx",
+    "category": "Package",
+    "dangerous": false,
+    "tags": ["package", "install"]
+  },
+  {
+    "command": "snap list",
+    "description": "List snap packages",
+    "example": "snap list",
+    "category": "Package",
+    "dangerous": false,
+    "tags": ["snap", "package"]
   },
   {
     "command": "history",
-    "description": "Show command history",
-    "example": "history | grep docker",
+    "description": "Show shell command history",
+    "example": "history | tail",
     "category": "Shell",
     "dangerous": false,
-    "tags": ["command", "history", "search"]
+    "tags": ["history", "shell"]
   },
   {
-    "command": "alias",
+    "command": "alias ll='ls -lah'",
     "description": "Create command alias",
     "example": "alias ll='ls -lah'",
     "category": "Shell",
     "dangerous": false,
-    "tags": ["alias", "shortcut", "command"]
-  },
-  {
-    "command": "echo",
-    "description": "Display text or variables",
-    "example": "echo $PATH",
-    "category": "Shell",
-    "dangerous": false,
-    "tags": ["print", "output", "variable"]
-  },
-  {
-    "command": "env",
-    "description": "Display environment variables",
-    "example": "env | grep PATH",
-    "category": "Shell",
-    "dangerous": false,
-    "tags": ["environment", "variable", "shell"]
-  },
-  {
-    "command": "export",
-    "description": "Set environment variable",
-    "example": "export PATH=$PATH:/new/path",
-    "category": "Shell",
-    "dangerous": false,
-    "tags": ["environment", "variable", "set"]
-  },
-  {
-    "command": "ncdu",
-    "description": "Interactive disk usage analyzer",
-    "example": "ncdu /var",
-    "category": "Disk",
-    "dangerous": false,
-    "tags": ["disk", "usage", "interactive", "analyzer"]
-  },
-  {
-    "command": "iotop",
-    "description": "Monitor I/O usage by process",
-    "example": "sudo iotop",
-    "category": "IO",
-    "dangerous": false,
-    "tags": ["io", "disk", "monitor", "process"]
-  },
-  {
-    "command": "iftop",
-    "description": "Monitor network bandwidth by connection",
-    "example": "sudo iftop -i eth0",
-    "category": "Network",
-    "dangerous": false,
-    "tags": ["network", "bandwidth", "monitor"]
-  },
-  {
-    "command": "dmesg",
-    "description": "Display kernel ring buffer messages",
-    "example": "dmesg | tail",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["kernel", "log", "hardware", "debug"]
-  },
-  {
-    "command": "lsblk",
-    "description": "List block devices",
-    "example": "lsblk",
-    "category": "Disk",
-    "dangerous": false,
-    "tags": ["disk", "device", "partition"]
-  },
-  {
-    "command": "mount",
-    "description": "Display mounted filesystems",
-    "example": "mount | grep '/dev'",
-    "category": "Disk",
-    "dangerous": false,
-    "tags": ["filesystem", "mount", "disk"]
-  },
-  {
-    "command": "umount",
-    "description": "Unmount a filesystem",
-    "example": "umount /mnt/disk",
-    "category": "Disk",
-    "dangerous": true,
-    "tags": ["filesystem", "unmount", "disk"]
-  },
-  {
-    "command": "fdisk -l",
-    "description": "List disk partitions",
-    "example": "sudo fdisk -l",
-    "category": "Disk",
-    "dangerous": false,
-    "tags": ["disk", "partition", "list"]
-  },
-  {
-    "command": "cat /proc/cpuinfo",
-    "description": "Display CPU information",
-    "example": "cat /proc/cpuinfo",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["cpu", "info", "hardware"]
-  },
-  {
-    "command": "cat /proc/meminfo",
-    "description": "Display memory information",
-    "example": "cat /proc/meminfo",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["memory", "info", "hardware"]
-  },
-  {
-    "command": "lscpu",
-    "description": "Display CPU architecture information",
-    "example": "lscpu",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["cpu", "info", "architecture"]
-  },
-  {
-    "command": "lspci",
-    "description": "List PCI devices",
-    "example": "lspci",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["hardware", "pci", "device"]
-  },
-  {
-    "command": "lsusb",
-    "description": "List USB devices",
-    "example": "lsusb",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["hardware", "usb", "device"]
-  },
-  {
-    "command": "dmidecode",
-    "description": "Display hardware information from BIOS",
-    "example": "sudo dmidecode -t system",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["hardware", "bios", "info"]
-  },
-  {
-    "command": "apt update",
-    "description": "Update package list (Debian/Ubuntu)",
-    "example": "sudo apt update",
-    "category": "Package",
-    "dangerous": false,
-    "tags": ["package", "update", "apt"]
-  },
-  {
-    "command": "apt upgrade",
-    "description": "Upgrade installed packages (Debian/Ubuntu)",
-    "example": "sudo apt upgrade",
-    "category": "Package",
-    "dangerous": true,
-    "tags": ["package", "upgrade", "apt"]
-  },
-  {
-    "command": "apt install",
-    "description": "Install package (Debian/Ubuntu)",
-    "example": "sudo apt install nginx",
-    "category": "Package",
-    "dangerous": false,
-    "tags": ["package", "install", "apt"]
-  },
-  {
-    "command": "apt remove",
-    "description": "Remove package (Debian/Ubuntu)",
-    "example": "sudo apt remove nginx",
-    "category": "Package",
-    "dangerous": true,
-    "tags": ["package", "remove", "apt"]
-  },
-  {
-    "command": "yum update",
-    "description": "Update packages (RedHat/CentOS)",
-    "example": "sudo yum update",
-    "category": "Package",
-    "dangerous": true,
-    "tags": ["package", "update", "yum"]
-  },
-  {
-    "command": "yum install",
-    "description": "Install package (RedHat/CentOS)",
-    "example": "sudo yum install nginx",
-    "category": "Package",
-    "dangerous": false,
-    "tags": ["package", "install", "yum"]
-  },
-  {
-    "command": "snap list",
-    "description": "List installed snap packages",
-    "example": "snap list",
-    "category": "Package",
-    "dangerous": false,
-    "tags": ["package", "snap", "list"]
-  },
-  {
-    "command": "snap install",
-    "description": "Install snap package",
-    "example": "sudo snap install code --classic",
-    "category": "Package",
-    "dangerous": false,
-    "tags": ["package", "snap", "install"]
-  },
-  {
-    "command": "which",
-    "description": "Show full path of command",
-    "example": "which python",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["command", "path", "locate"]
-  },
-  {
-    "command": "whereis",
-    "description": "Locate binary, source, and manual page files",
-    "example": "whereis nginx",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["command", "locate", "path"]
-  },
-  {
-    "command": "locate",
-    "description": "Find files by name using database",
-    "example": "locate nginx.conf",
-    "category": "Files",
-    "dangerous": false,
-    "tags": ["find", "search", "file"]
-  },
-  {
-    "command": "updatedb",
-    "description": "Update locate database",
-    "example": "sudo updatedb",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["index", "locate", "database"]
-  },
-  {
-    "command": "crontab -l",
-    "description": "List user's cron jobs",
-    "example": "crontab -l",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["cron", "schedule", "list"]
-  },
-  {
-    "command": "crontab -e",
-    "description": "Edit user's cron jobs",
-    "example": "crontab -e",
-    "category": "System",
-    "dangerous": true,
-    "tags": ["cron", "schedule", "edit"]
-  },
-  {
-    "command": "at",
-    "description": "Schedule a one-time task",
-    "example": "echo 'command' | at now + 1 hour",
-    "category": "System",
-    "dangerous": false,
-    "tags": ["schedule", "task", "delayed"]
-  },
-  {
-    "command": "screen",
-    "description": "Start terminal multiplexer session",
-    "example": "screen -S session_name",
-    "category": "Shell",
-    "dangerous": false,
-    "tags": ["terminal", "multiplexer", "session"]
-  },
-  {
-    "command": "tmux",
-    "description": "Terminal multiplexer (better than screen)",
-    "example": "tmux new -s session_name",
-    "category": "Shell",
-    "dangerous": false,
-    "tags": ["terminal", "multiplexer", "session"]
-  },
-  {
-    "command": "nohup",
-    "description": "Run command immune to hangups",
-    "example": "nohup long_running_command &",
-    "category": "Process",
-    "dangerous": false,
-    "tags": ["background", "process", "persistent"]
-  },
-  {
-    "command": "bg",
-    "description": "Resume suspended job in background",
-    "example": "bg %1",
-    "category": "Process",
-    "dangerous": false,
-    "tags": ["background", "job", "control"]
-  },
-  {
-    "command": "fg",
-    "description": "Bring background job to foreground",
-    "example": "fg %1",
-    "category": "Process",
-    "dangerous": false,
-    "tags": ["foreground", "job", "control"]
-  },
-  {
-    "command": "jobs",
-    "description": "List active jobs",
-    "example": "jobs",
-    "category": "Process",
-    "dangerous": false,
-    "tags": ["background", "job", "list"]
+    "tags": ["alias", "shortcut"]
   }
 ]

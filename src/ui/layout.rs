@@ -13,34 +13,55 @@ use super::widgets;
 pub fn render(f: &mut Frame, app: &mut App) {
     let size = f.size();
 
-    // Create main layout: header, content area, footer
+    // Create main layout: title, header, content area, footer
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(3),  // Title
             Constraint::Length(3),  // Header with tabs
             Constraint::Min(0),     // Main content
             Constraint::Length(3),  // Footer with help
         ])
         .split(size);
 
+    // Render title
+    render_title(f, chunks[0]);
+
     // Render header with navigation tabs
-    render_header(f, app, chunks[0]);
+    render_header(f, app, chunks[1]);
 
     // Render main content based on current screen
     match app.current_screen {
-        Screen::Storage => render_storage_screen(f, app, chunks[1]),
-        Screen::Metrics => render_metrics_screen(f, app, chunks[1]),
-        Screen::Commands => render_commands_screen(f, app, chunks[1]),
-        Screen::Settings => render_settings_screen(f, app, chunks[1]),
+        Screen::Storage => render_storage_screen(f, app, chunks[2]),
+        Screen::Metrics => render_metrics_screen(f, app, chunks[2]),
+        Screen::Commands => render_commands_screen(f, app, chunks[2]),
+        Screen::Settings => render_settings_screen(f, app, chunks[2]),
     }
 
     // Render footer with help text
-    render_footer(f, app, chunks[2]);
+    render_footer(f, app, chunks[3]);
+}
+
+/// Render the title
+fn render_title(f: &mut Frame, area: Rect) {
+    let title = Paragraph::new(Line::from(vec![
+        Span::styled("  J A R V I S  ", Style::default()
+            .fg(Color::Cyan)
+            .add_modifier(Modifier::BOLD | Modifier::ITALIC)),
+        Span::styled("- System Monitor & Command Assistant", Style::default()
+            .fg(Color::DarkGray)),
+    ]))
+    .alignment(Alignment::Center)
+    .block(Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
+    
+    f.render_widget(title, area);
 }
 
 /// Render the header with navigation tabs
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
-    let titles = vec!["STORAGE", "METRICS", "COMMANDS", "SETTINGS"];
+    let titles = vec![" STORAGE", "  METRICS", " COMMANDS", " SETTINGS"];
     
     let selected_index = match app.current_screen {
         Screen::Storage => 0,
@@ -52,9 +73,9 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let tabs = Tabs::new(titles)
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan)))
+            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
         .select(selected_index)
-        .style(Style::default().fg(Color::Gray))
+        .style(Style::default().fg(Color::DarkGray))
         .highlight_style(
             Style::default()
                 .fg(Color::Black)
@@ -183,25 +204,25 @@ fn render_settings_screen(f: &mut Frame, _app: &App, area: Rect) {
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.current_screen {
         Screen::Storage => {
-            "h l: Switch tabs | j k: Navigate | r: Rescan | q: Quit"
+            "h l: Switch | j k: Navigate | r: Rescan | q: Quit"
         }
         Screen::Metrics => {
-            "h l: Switch tabs | r: Refresh | q: Quit"
+            "h l: Switch | r: Refresh | q: Quit"
         }
         Screen::Commands => {
-            "h l: Switch tabs | j k: Navigate | /: Search | Enter: Execute | q: Quit"
+            "h l: Switch | j k: Navigate | /: Search | Enter: Execute | q: Quit"
         }
         Screen::Settings => {
-            "h l: Switch tabs | q: Quit"
+            "h l: Switch | q: Quit"
         }
     };
 
     let help = Paragraph::new(Line::from(vec![
-        Span::styled(help_text, Style::default().fg(Color::Gray)),
+        Span::styled(help_text, Style::default().fg(Color::DarkGray)),
     ]))
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan)))
+            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);

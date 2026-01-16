@@ -22,8 +22,9 @@ walkdir = "2.4"
 # Parallel processing
 rayon = "1.8"
 
-# Async runtime (optional, for future use)
-tokio = { version = "1.35", features = ["full"], optional = true }
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -46,9 +47,17 @@ fuzzy-matcher = "0.3"
 # Configuration
 dirs = "5.0"
 
+# Plugin loading
+libloading = "0.8"
+
+# Bounded threadpool
+threadpool = "1.8"
+
+[dev-dependencies]
+tempfile = "3.8"
+
 [features]
 default = []
-async = ["tokio"]
 
 [profile.release]
 opt-level = 3

@@ -90,36 +90,42 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     let cpu_data = app.metrics.get_cpu_info();
 
     let overall_color = get_usage_color(cpu_data.usage as f64);
-    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 48);
+    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 30);
     
     let mut lines = vec![
+        Line::from(""),
         Line::from(vec![
-            Span::styled("▶ TOTAL ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)),
-            Span::styled(overall_bar, Style::default().fg(overall_color)),
-            Span::styled(
-                format!(" {:>5.1}%", cpu_data.usage),
-                Style::default().fg(overall_color).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-            ),
+            Span::styled("  CPU Usage: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.1}%", cpu_data.usage), Style::default().fg(overall_color).add_modifier(Modifier::BOLD)),
         ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled(overall_bar, Style::default().fg(overall_color).add_modifier(Modifier::BOLD)),
+        ]),
+        Line::from(""),
     ];
 
-    // Add per-core information with enhanced visualization
+    // Add per-core information with simple bars
     for (i, core_usage) in cpu_data.per_core.iter().enumerate() {
-        let bar = create_unicode_bar(*core_usage as f64, 45);
+        let simple_bar = create_simple_bar(*core_usage as f64, 10);
         let core_color = get_usage_color(*core_usage as f64);
         lines.push(Line::from(vec![
-            Span::styled(format!("▸ {:02} ", i), Style::default().fg(Color::Rgb(100, 100, 255))),
-            Span::styled(bar, Style::default().fg(core_color)),
-            Span::styled(format!(" {:>5.1}%", core_usage), Style::default().fg(core_color)),
+            Span::styled(format!("  Core {:2} : ", i), Style::default().fg(Color::DarkGray)),
+            Span::styled(simple_bar, Style::default().fg(core_color).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("  {:.1}%", core_usage), Style::default().fg(core_color)),
         ]));
     }
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Rgb(0, 255, 255)))
-            .title(Span::styled(" ⚡ CPU CORES ⚡ ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)))
-    )
+    lines.push(Line::from(""));
+
+    Paragraph::new(lines)
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" CPU CORES ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+        )
 }
 
 /// Create memory usage widget
@@ -127,7 +133,7 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     let mem_data = app.metrics.get_memory_info();
 
     let usage_percent = (mem_data.used as f64 / mem_data.total as f64) * 100.0;
-    let mem_bar = create_unicode_bar(usage_percent, 48);
+    let mem_bar = create_unicode_bar(usage_percent, 40);
     let mem_color = get_usage_color(usage_percent);
     
     let swap_percent = if mem_data.swap_total > 0 {
@@ -135,49 +141,50 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     } else {
         0.0
     };
-    let swap_bar = create_unicode_bar(swap_percent, 48);
+    let swap_bar = create_unicode_bar(swap_percent, 40);
     let swap_color = get_usage_color(swap_percent);
 
     let lines = vec![
+        Line::from(""),
         Line::from(vec![
-            Span::styled("▶ RAM  ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)),
-            Span::styled(mem_bar, Style::default().fg(mem_color)),
-            Span::styled(format!(" {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD | Modifier::UNDERLINED)),
+            Span::styled("RAM Total: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.1} GB", mem_data.total as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::White)),
         ]),
         Line::from(vec![
-            Span::styled("       ", Style::default()),
-            Span::styled(
-                format!("{} / {}",
-                    format::format_bytes(mem_data.used),
-                    format::format_bytes(mem_data.total)
-                ),
-                Style::default().fg(Color::Rgb(150, 150, 255)),
-            ),
+            Span::styled("RAM Used:  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.2} GB", mem_data.used as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(mem_color)),
+        ]),
+        Line::from(vec![
+            Span::styled("RAM Avail: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.2} GB", mem_data.available as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::Green)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("▶ SWAP ", Style::default().fg(Color::Rgb(255, 255, 0)).add_modifier(Modifier::BOLD)),
-            Span::styled(swap_bar, Style::default().fg(swap_color)),
-            Span::styled(format!(" {:.1}%", swap_percent), Style::default().fg(swap_color)),
+            Span::styled(mem_bar, Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("  {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("       ", Style::default()),
+            Span::styled("Swap: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!("{} / {}",
+                format!("{} / {:.2} GB",
                     format::format_bytes(mem_data.swap_used),
-                    format::format_bytes(mem_data.swap_total)
+                    mem_data.swap_total as f64 / (1024.0 * 1024.0 * 1024.0)
                 ),
-                Style::default().fg(Color::Rgb(200, 200, 100)),
+                Style::default().fg(swap_color),
             ),
         ]),
+        Line::from(""),
     ];
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Rgb(255, 0, 255)))
-            .title(Span::styled(" 💾 MEMORY BANKS 💾 ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)))
-    )
+    Paragraph::new(lines)
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" MEMORY ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+        )
 }
 
 /// Create disk usage widget
@@ -186,46 +193,62 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
 
     let mut lines = vec![];
 
+    // Add top padding for vertical centering
+    lines.push(Line::from(""));
+    lines.push(Line::from(""));
+
     // Make a copy we can iterate through
     let disk_list: Vec<_> = disks.iter().cloned().collect();
 
-    for (idx, disk) in disk_list.iter().enumerate() {
-        if idx > 0 {
-            lines.push(Line::from(""));
-            lines.push(Line::from(""));
-        }
-        
-        let usage_percent = (disk.used as f64 / disk.total as f64) * 100.0;
-        let bar = create_unicode_bar(usage_percent, 40);
-        let disk_color = get_usage_color(usage_percent);
+    if disk_list.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled("No disks found", Style::default().fg(Color::DarkGray))));
+    } else {
+        for (idx, disk) in disk_list.iter().enumerate() {
+            if idx > 0 {
+                lines.push(Line::from(""));
+            }
+            
+            let usage_percent = (disk.used as f64 / disk.total as f64) * 100.0;
+            let bar = create_unicode_bar(usage_percent, 35);
+            let disk_color = get_usage_color(usage_percent);
 
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("▶ {:<6}", disk.mount_point.clone()),
-                Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(bar, Style::default().fg(disk_color)),
-            Span::styled(format!(" {:>5.1}%", usage_percent), Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
-        ]));
-
-        lines.push(Line::from(vec![
-            Span::styled("        ", Style::default()),
-            Span::styled(
-                format!("{} / {}",
-                    format::format_bytes(disk.used),
-                    format::format_bytes(disk.total)
+            lines.push(Line::from(vec![
+                Span::styled(
+                    format!("{}", disk.mount_point.clone()),
+                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
                 ),
-                Style::default().fg(Color::Rgb(150, 150, 200)),
-            ),
-        ]));
+            ]));
+
+            lines.push(Line::from(vec![
+                Span::styled(bar, Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
+                Span::styled(format!("  {:.1}%", usage_percent), Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
+            ]));
+
+            lines.push(Line::from(vec![
+                Span::styled(
+                    format!("Used: {:.1} GB / Total: {:.1} GB",
+                        disk.used as f64 / (1024.0 * 1024.0 * 1024.0),
+                        disk.total as f64 / (1024.0 * 1024.0 * 1024.0)
+                    ),
+                    Style::default().fg(Color::DarkGray),
+                ),
+            ]));
+        }
     }
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Rgb(0, 255, 255)))
-            .title(Span::styled(" 💿 STORAGE DRIVES 💿 ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)))
-    )
+    // Add bottom padding for vertical centering
+    lines.push(Line::from(""));
+    lines.push(Line::from(""));
+
+    Paragraph::new(lines)
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+                .title(Span::styled("  DISK ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+        )
 }
 
 /// Create network usage widget
@@ -233,64 +256,89 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
     let net_data = app.metrics.get_network_info();
 
     let mut lines = vec![
+        Line::from(""),
         Line::from(vec![
-            Span::styled("▼ RX  ", Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD)),
+            Span::styled(" RX Total: ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!("{:>12}", format::format_bytes(net_data.received)),
-                Style::default().fg(Color::Rgb(200, 255, 200)),
+                format!("{}", format::format_bytes(net_data.received)),
+                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
             ),
+        ]),
+        Line::from(vec![
+            Span::styled(" RX Rate:  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!("  {:>10}/s", format::format_bytes(net_data.rx_rate)),
-                Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD),
+                format!("{}/s", format::format_bytes(net_data.rx_rate)),
+                Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("▲ TX  ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)),
+            Span::styled(" TX Total: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
             Span::styled(
-                format!("{:>12}", format::format_bytes(net_data.sent)),
-                Style::default().fg(Color::Rgb(200, 255, 255)),
-            ),
-            Span::styled(
-                format!("  {:>10}/s", format::format_bytes(net_data.tx_rate)),
-                Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD),
+                format!("{}", format::format_bytes(net_data.sent)),
+                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
             ),
         ]),
+        Line::from(vec![
+            Span::styled(" TX Rate:  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                format!("{}/s", format::format_bytes(net_data.tx_rate)),
+                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            ),
+        ]),
+        Line::from(""),
     ];
 
     // Add temperature if available
     if let Some(temp) = app.metrics.get_temperature() {
         lines.push(Line::from(""));
         lines.push(Line::from(""));
+        lines.push(Line::from(""));
+        lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled("◈ TEMP ", Style::default().fg(Color::Rgb(255, 100, 0)).add_modifier(Modifier::BOLD)),
+            Span::styled(" TEMP  ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{:.1}°C", temp),
-                Style::default().fg(get_temp_color(temp as f64)).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+                Style::default().fg(get_temp_color(temp as f64)).add_modifier(Modifier::BOLD),
             ),
         ]));
+        lines.push(Line::from(""));
+        lines.push(Line::from(""));
+    } else {
+        // Add padding if no temperature
+        for _ in 0..6 {
+            lines.push(Line::from(""));
+        }
     }
 
-    Paragraph::new(lines).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Rgb(0, 255, 0)))
-            .title(Span::styled(" 🌐 NETWORK I/O 🌐 ", Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD)))
-    )
+    Paragraph::new(lines)
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" NETWORK ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+        )
 }
 
 /// Create search input widget
 pub fn create_search_input(app: &App) -> Paragraph<'_> {
-    let text = if app.input_mode {
-        format!("SEARCH: {}_", app.input_buffer)
+    let cursor = if app.input_mode {
+        "█" // Blinking cursor
     } else {
-        "SEARCH: (Press / to search)".to_string()
+        ""
+    };
+    
+    let text = if app.input_mode {
+        format!(" SEARCH: {}{}", app.input_buffer, cursor)
+    } else {
+        " SEARCH: (Press / to search)".to_string()
     };
     
     let text_color = if app.input_mode {
         Color::Yellow
     } else {
-        Color::Gray
+        Color::DarkGray
     };
 
     Paragraph::new(Line::from(vec![
@@ -299,7 +347,7 @@ pub fn create_search_input(app: &App) -> Paragraph<'_> {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan))
+            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
             .title(Span::styled(
                 if app.input_mode { " SEARCH MODE " } else { " SEARCH " },
                 Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
@@ -316,7 +364,7 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
         .map(|(idx, cmd)| {
             let selected = idx == app.selected_index;
 
-            let (cmd_style, desc_style) = if selected {
+            let (cmd_style, desc_style, separator_style, bg_color) = if selected {
                 (
                     Style::default()
                         .fg(Color::Black)
@@ -325,29 +373,43 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
                     Style::default()
                         .fg(Color::Black)
                         .bg(Color::Cyan),
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan),
+                    Color::Cyan,
                 )
             } else {
                 (
-                    Style::default().fg(Color::Cyan),
-                    Style::default().fg(Color::Gray),
+                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(Color::DarkGray),
+                    Color::Reset,
                 )
             };
 
             let title = if cmd.dangerous {
-                format!("[DANGER] {}", cmd.command)
+                format!("   󰞍  [DANGER] {}", cmd.command)
             } else {
-                cmd.command.clone()
+                format!("   󰗎  {}", cmd.command)
             };
+
+            // Create a full-width separator line (elongated)
+            let separator_line = "─".repeat(300);
 
             ListItem::new(vec![
                 Line::from(vec![
                     Span::styled(title, cmd_style),
+                    Span::styled(" ".repeat(300), cmd_style), // Full width highlight background
                 ]),
                 Line::from(vec![
                     Span::styled(
-                        format!("  {}", cmd.description),
+                        format!("     {}", cmd.description),
                         desc_style,
                     ),
+                    Span::styled(" ".repeat(300), desc_style), // Full width highlight background
+                ]),
+                Line::from(vec![
+                    Span::styled(separator_line, separator_style),
                 ]),
             ])
         })
@@ -360,12 +422,13 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan))
+                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
                 .title(Span::styled(
                     format!(" COMMANDS ({}/{}) ", app.selected_index + 1, results.len()),
                     Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
                 ))
-        );
+        )
+        .style(Style::default());
 
     (list, state)
 }
@@ -438,6 +501,17 @@ fn create_unicode_bar(percentage: f64, width: usize) -> String {
         "█".repeat(filled),
         partial_char,
         "░".repeat(empty)
+    )
+}
+
+/// Create a simple bar for core usage
+fn create_simple_bar(percentage: f64, width: usize) -> String {
+    let filled = ((percentage / 100.0) * width as f64) as usize;
+    let empty = width.saturating_sub(filled);
+    
+    format!("{}{}",
+        "▮".repeat(filled),
+        "▯".repeat(empty)
     )
 }
 

@@ -9,13 +9,17 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 
 mod app;
+mod async_loop;
 mod commands;
 mod plugins;
 mod system;
+mod theme;
 mod ui;
 mod utils;
 
 use app::App;
+use plugins::loader::PluginLoader;
+use theme::Theme;
 
 /// Initialize the terminal for TUI rendering
 fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
@@ -44,6 +48,14 @@ fn main() -> Result<()> {
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Error)
         .init();
+
+    // Initialize theme system (default to dark theme)
+    let _theme = Theme::dark();
+
+    // Initialize plugin loader
+    let mut plugin_loader = PluginLoader::default();
+    plugin_loader.validate_plugins_dir()?;
+    let _ = plugin_loader.discover();
 
     // Set up terminal
     let mut terminal = setup_terminal()?;
