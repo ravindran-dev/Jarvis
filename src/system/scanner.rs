@@ -6,6 +6,7 @@ use threadpool::ThreadPool;
 use walkdir::WalkDir;
 
 /// Progress information for storage scanning
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ScanProgress {
     pub scanned_items: usize,
@@ -15,6 +16,7 @@ pub struct ScanProgress {
 }
 
 /// Represents a directory entry with size information
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct DirectoryEntry {
     pub path: PathBuf,
@@ -23,18 +25,19 @@ pub struct DirectoryEntry {
 }
 
 /// Optimized storage scanner using bounded thread pool
+#[allow(dead_code)]
 pub struct StorageScanner {
     thread_pool: ThreadPool,
     progress: Arc<Mutex<ScanProgress>>,
 }
 
 impl StorageScanner {
-    /// Create a new scanner with bounded thread pool (4 threads by default)
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self::with_threads(4)
     }
 
-    /// Create scanner with specified number of threads
+    #[allow(dead_code)]
     pub fn with_threads(num_threads: usize) -> Self {
         let thread_pool = ThreadPool::new(num_threads);
         let progress = Arc::new(Mutex::new(ScanProgress {
@@ -50,7 +53,7 @@ impl StorageScanner {
         }
     }
 
-    /// Scan directory and return top directories by size
+    #[allow(dead_code)]
     pub fn scan_directory(&self, path: &Path, top_n: usize) -> Result<Vec<DirectoryEntry>> {
         debug!("Starting directory scan of: {:?}", path);
 
@@ -104,7 +107,7 @@ impl StorageScanner {
         Ok(entries)
     }
 
-    /// Get directory size efficiently
+    #[allow(dead_code)]
     fn get_dir_size(path: &Path) -> Result<u64> {
         let mut size = 0u64;
 
@@ -121,7 +124,7 @@ impl StorageScanner {
         Ok(size)
     }
 
-    /// Count files in directory
+    #[allow(dead_code)]
     fn count_files(path: &Path) -> Result<usize> {
         let count = WalkDir::new(path)
             .into_iter()
@@ -132,12 +135,12 @@ impl StorageScanner {
         Ok(count)
     }
 
-    /// Get current progress
+    #[allow(dead_code)]
     pub fn get_progress(&self) -> ScanProgress {
         self.progress.lock().unwrap().clone()
     }
 
-    /// Wait for thread pool to finish
+    #[allow(dead_code)]
     pub fn join(self) {
         self.thread_pool.join();
     }

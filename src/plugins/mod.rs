@@ -3,8 +3,6 @@ pub mod loader;
 use log::debug;
 use std::collections::HashMap;
 
-pub use loader::PluginLoader;
-
 /// Plugin trait for extensibility
 #[allow(dead_code)]
 pub trait Plugin: Send + Sync {
@@ -108,6 +106,7 @@ impl PluginManager {
     }
 
     /// Enable or disable a plugin
+    #[allow(dead_code)]
     pub fn set_enabled(&mut self, name: &str, enabled: bool) {
         if self.plugins.contains_key(name) {
             self.enabled.insert(name.to_string(), enabled);

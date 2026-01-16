@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 /// Plugin trait that all plugins must implement
+#[allow(dead_code)]
 pub trait Plugin: Send + Sync {
     /// Get plugin name
     fn name(&self) -> &str;
@@ -22,6 +23,7 @@ pub trait Plugin: Send + Sync {
 }
 
 /// Plugin metadata
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct PluginInfo {
     pub name: String,
@@ -111,12 +113,12 @@ impl PluginLoader {
         })
     }
 
-    /// List all discovered plugins
+    #[allow(dead_code)]
     pub fn list_plugins(&self) -> &[PluginInfo] {
         &self.loaded_plugins
     }
 
-    /// Enable a plugin
+    #[allow(dead_code)]
     pub fn enable_plugin(&mut self, name: &str) -> Result<()> {
         if let Some(plugin) = self.loaded_plugins.iter_mut().find(|p| p.name == name) {
             plugin.enabled = true;
@@ -127,7 +129,7 @@ impl PluginLoader {
         }
     }
 
-    /// Disable a plugin
+    #[allow(dead_code)]
     pub fn disable_plugin(&mut self, name: &str) -> Result<()> {
         if let Some(plugin) = self.loaded_plugins.iter_mut().find(|p| p.name == name) {
             plugin.enabled = false;
@@ -147,7 +149,7 @@ impl PluginLoader {
         Ok(())
     }
 
-    /// Get plugins directory
+    #[allow(dead_code)]
     pub fn plugins_dir(&self) -> &Path {
         &self.plugins_dir
     }

@@ -1,6 +1,7 @@
 use ratatui::style::Color;
 
 /// Theme configuration
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct Theme {
     pub name: String,

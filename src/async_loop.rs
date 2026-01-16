@@ -7,6 +7,7 @@ use tokio::task::JoinHandle;
 
 
 /// Async event message types
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum AsyncMessage {
     UIEvent(Event),
@@ -16,6 +17,7 @@ pub enum AsyncMessage {
 }
 
 /// Non-blocking async event loop
+#[allow(dead_code)]
 pub struct AsyncEventLoop {
     sender: mpsc::UnboundedSender<AsyncMessage>,
     receiver: Option<mpsc::UnboundedReceiver<AsyncMessage>>,
@@ -23,7 +25,7 @@ pub struct AsyncEventLoop {
 }
 
 impl AsyncEventLoop {
-    /// Create a new async event loop
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
 
@@ -34,7 +36,7 @@ impl AsyncEventLoop {
         }
     }
 
-    /// Start the event loop (non-blocking)
+    #[allow(dead_code)]
     pub fn start(&mut self) -> mpsc::UnboundedSender<AsyncMessage> {
         let _sender = self.sender.clone();
 
@@ -50,18 +52,18 @@ impl AsyncEventLoop {
         self.sender.clone()
     }
 
-    /// Get the receiver (only callable once)
+    #[allow(dead_code)]
     pub fn take_receiver(&mut self) -> Option<mpsc::UnboundedReceiver<AsyncMessage>> {
         self.receiver.take()
     }
 
-    /// Send a message to the event loop
+    #[allow(dead_code)]
     pub fn send(&self, msg: AsyncMessage) -> Result<()> {
         self.sender.send(msg)?;
         Ok(())
     }
 
-    /// Stop the event loop
+    #[allow(dead_code)]
     pub async fn stop(&mut self) {
         if let Some(handle) = self.task_handle.take() {
             handle.abort();
@@ -76,12 +78,13 @@ impl Default for AsyncEventLoop {
 }
 
 /// Background task runner for non-blocking operations
+#[allow(dead_code)]
 pub struct BackgroundTaskRunner {
     runtime: Arc<tokio::runtime::Runtime>,
 }
 
 impl BackgroundTaskRunner {
-    /// Create a new background task runner
+    #[allow(dead_code)]
     pub fn new() -> Result<Self> {
         let runtime = tokio::runtime::Runtime::new()?;
         Ok(Self {
@@ -89,7 +92,7 @@ impl BackgroundTaskRunner {
         })
     }
 
-    /// Spawn a background task
+    #[allow(dead_code)]
     pub fn spawn_task<F>(&self, task: F) -> JoinHandle<()>
     where
         F: std::future::Future<Output = ()> + Send + 'static,
@@ -97,7 +100,7 @@ impl BackgroundTaskRunner {
         self.runtime.spawn(task)
     }
 
-    /// Run a blocking operation in a dedicated thread without blocking the main loop
+    #[allow(dead_code)]
     pub fn spawn_blocking<F>(&self, f: F) -> JoinHandle<()>
     where
         F: FnOnce() + Send + 'static,
