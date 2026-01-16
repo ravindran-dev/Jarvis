@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use walkdir::WalkDir;
 
-/// Represents a directory with its size and file count
+
 #[derive(Debug, Clone)]
 pub struct DirectoryItem {
     pub path: String,
@@ -13,20 +13,20 @@ pub struct DirectoryItem {
     pub file_count: usize,
 }
 
-/// Storage analyzer for scanning directories
+
 pub struct StorageAnalyzer {
-    /// Current scan results
+
     results: Arc<Mutex<Vec<DirectoryItem>>>,
-    /// Whether a scan is currently in progress
+
     scanning: Arc<Mutex<bool>>,
-    /// Paths to scan
+ 
     scan_paths: Vec<PathBuf>,
-    /// Minimum size threshold to include a directory (bytes)
+
     min_threshold_bytes: u64,
 }
 
 impl StorageAnalyzer {
-    /// Create a new StorageAnalyzer
+  
     pub fn new() -> Result<Self> {
         let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"));
 
@@ -50,22 +50,21 @@ impl StorageAnalyzer {
         Ok(analyzer)
     }
 
-    /// Check if a scan is currently in progress
+    
     pub fn is_scanning(&self) -> bool {
         *self.scanning.lock().unwrap()
     }
 
-    /// Get the current scan results
+
     pub fn get_results(&self) -> Vec<DirectoryItem> {
         self.results.lock().unwrap().clone()
     }
 
-    /// Get the number of results
     pub fn get_results_count(&self) -> usize {
         self.results.lock().unwrap().len()
     }
 
-    /// Start a background scan of configured directories
+   
     pub fn start_scan(&self) -> Result<()> {
         if self.is_scanning() {
             return Ok(());
@@ -94,7 +93,7 @@ impl StorageAnalyzer {
         Ok(())
     }
 
-    /// Scan multiple directories in parallel
+ 
     fn scan_directories(paths: &[PathBuf], min_threshold_bytes: u64) -> Vec<DirectoryItem> {
         paths
             .par_iter()
@@ -103,7 +102,7 @@ impl StorageAnalyzer {
             .collect()
     }
 
-    /// Scan a single directory and return items
+   
     fn scan_directory(root: &Path, min_threshold_bytes: u64) -> Vec<DirectoryItem> {
         let mut directory_sizes: Vec<DirectoryItem> = Vec::new();
 
@@ -136,7 +135,7 @@ impl StorageAnalyzer {
         directory_sizes
     }
 
-    /// Calculate total size of a directory recursively
+
     fn calculate_directory_size(path: &Path) -> (u64, usize) {
         let mut total_size = 0u64;
         let mut file_count = 0usize;
@@ -158,7 +157,7 @@ impl StorageAnalyzer {
         (total_size, file_count)
     }
 
-    /// Update the minimum size threshold (in bytes)
+  
     pub fn set_min_threshold_bytes(&mut self, bytes: u64) {
         self.min_threshold_bytes = bytes;
     }

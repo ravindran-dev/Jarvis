@@ -2,14 +2,14 @@ use anyhow::Result;
 use log::warn;
 use sysinfo::{Disks, Networks, System};
 
-/// CPU usage information
+
 #[derive(Debug, Clone)]
 pub struct CpuInfo {
     pub usage: f32,
     pub per_core: Vec<f32>,
 }
 
-/// Memory usage information
+
 #[derive(Debug, Clone)]
 pub struct MemoryInfo {
     pub total: u64,
@@ -20,7 +20,6 @@ pub struct MemoryInfo {
     pub swap_used: u64,
 }
 
-/// Disk usage information
 #[derive(Debug, Clone)]
 pub struct DiskInfo {
     pub mount_point: String,
@@ -30,7 +29,7 @@ pub struct DiskInfo {
     pub available: u64,
 }
 
-/// Network usage information
+
 #[derive(Debug, Clone)]
 pub struct NetworkInfo {
     pub received: u64,
@@ -39,7 +38,6 @@ pub struct NetworkInfo {
     pub tx_rate: u64,
 }
 
-/// System metrics collector
 pub struct SystemMetrics {
     system: System,
     disks: Disks,
@@ -49,7 +47,7 @@ pub struct SystemMetrics {
 }
 
 impl SystemMetrics {
-    /// Create a new SystemMetrics instance
+    
     pub fn new() -> Result<Self> {
         let mut system = System::new_all();
         system.refresh_all();
@@ -67,7 +65,7 @@ impl SystemMetrics {
         })
     }
 
-    /// Update all system metrics
+
     pub fn update(&mut self) -> Result<()> {
         self.system.refresh_cpu();
         self.system.refresh_memory();
@@ -77,7 +75,7 @@ impl SystemMetrics {
         Ok(())
     }
 
-    /// Get current CPU usage information
+
     pub fn get_cpu_info(&self) -> CpuInfo {
         let usage = self.system.global_cpu_info().cpu_usage();
 
@@ -91,7 +89,6 @@ impl SystemMetrics {
         CpuInfo { usage, per_core }
     }
 
-    /// Get current memory usage information
     pub fn get_memory_info(&self) -> MemoryInfo {
         let total = self.system.total_memory();
         let available = self.system.available_memory();
@@ -108,7 +105,6 @@ impl SystemMetrics {
         }
     }
 
-    /// Get disk usage information for all mounted disks
     pub fn get_disk_info(&self) -> Vec<DiskInfo> {
         self.disks
             .iter()
@@ -127,7 +123,7 @@ impl SystemMetrics {
             .collect()
     }
 
-    /// Get network usage information
+ 
     pub fn get_network_info(&mut self) -> NetworkInfo {
         let mut total_received = 0u64;
         let mut total_sent = 0u64;
@@ -151,12 +147,12 @@ impl SystemMetrics {
         }
     }
 
-    /// Get system temperature (if available)
+
     pub fn get_temperature(&self) -> Option<f32> {
         self.read_temperature_from_procfs()
     }
 
-    /// Attempt to read temperature from /sys/class/thermal
+ 
     fn read_temperature_from_procfs(&self) -> Option<f32> {
         use std::fs;
 

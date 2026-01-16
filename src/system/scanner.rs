@@ -167,6 +167,5 @@ mod tests {
     fn test_scanner_with_threads() {
         let scanner = StorageScanner::with_threads(2);
         let _progress = scanner.get_progress();
-        // Verify scanner doesn't panic
     }
 }
