@@ -115,7 +115,6 @@ impl PluginManager {
     }
 }
 
-// Example plugin implementation for demonstration
 #[allow(dead_code)]
 pub struct ExamplePlugin {
     name: String,

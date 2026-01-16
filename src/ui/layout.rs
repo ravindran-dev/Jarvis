@@ -13,24 +13,20 @@ use super::widgets;
 pub fn render(f: &mut Frame, app: &mut App) {
     let size = f.size();
 
-    // Create main layout: title, header, content area, footer
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Length(3),  // Header with tabs
-            Constraint::Min(0),     // Main content
-            Constraint::Length(3),  // Footer with help
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Min(0),
+            Constraint::Length(3),
         ])
         .split(size);
 
-    // Render title
     render_title(f, chunks[0], app);
 
-    // Render header with navigation tabs
     render_header(f, app, chunks[1]);
 
-    // Render main content based on current screen
     match app.current_screen {
         Screen::Storage => render_storage_screen(f, app, chunks[2]),
         Screen::Metrics => render_metrics_screen(f, app, chunks[2]),
@@ -38,7 +34,6 @@ pub fn render(f: &mut Frame, app: &mut App) {
         Screen::Settings => render_settings_screen(f, app, chunks[2]),
     }
 
-    // Render footer with help text
     render_footer(f, app, chunks[3]);
 }
 
@@ -93,16 +88,14 @@ fn render_storage_screen(f: &mut Frame, app: &App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Status bar
-            Constraint::Min(0),     // Storage list
+            Constraint::Length(3),
+            Constraint::Min(0),
         ])
         .split(area);
 
-    // Status information
     let status = widgets::create_storage_status(app);
     f.render_widget(status, chunks[0]);
 
-    // Storage results table
     let storage_table = widgets::create_storage_table(app);
     f.render_widget(storage_table, chunks[1]);
 }
@@ -112,12 +105,11 @@ fn render_metrics_screen(f: &mut Frame, app: &mut App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(50),  // Top half
-            Constraint::Percentage(50),  // Bottom half
+            Constraint::Percentage(50),
+            Constraint::Percentage(50),
         ])
         .split(area);
 
-    // Top section: CPU and Memory
     let top_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -131,7 +123,6 @@ fn render_metrics_screen(f: &mut Frame, app: &mut App, area: Rect) {
     let mem_area = centered_rect(96, 92, top_chunks[1]);
     f.render_widget(memory_widget, mem_area);
 
-    // Bottom section: Disk and Network
     let bottom_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -171,23 +162,20 @@ fn render_commands_screen(f: &mut Frame, app: &App, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Search bar
-            Constraint::Min(0),     // Command list
+            Constraint::Length(3),
+            Constraint::Min(0),
         ])
         .split(area);
 
-    // Search input
     let search_widget = widgets::create_search_input(app);
     f.render_widget(search_widget, chunks[0]);
 
-    // Command list with state
     let (commands_widget, mut list_state) = widgets::create_commands_list(app);
     f.render_stateful_widget(commands_widget, chunks[1], &mut list_state);
 }
 
 /// Render the settings screen
 fn render_settings_screen(f: &mut Frame, app: &App, area: Rect) {
-    // Build dynamic settings lines
     let themes = app.get_available_themes();
     let theme_name = themes.get(app.get_current_theme_index()).map(|t| t.name.as_str()).unwrap_or("dark");
     let interval = format!("{} ms", app.config.refresh_interval_ms);
@@ -223,7 +211,6 @@ fn render_settings_screen(f: &mut Frame, app: &App, area: Rect) {
         lines.push(Line::from(Span::styled("─".repeat(120), Style::default().fg(Color::DarkGray))));
     }
 
-    // Plugins section
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
         "Plugins",

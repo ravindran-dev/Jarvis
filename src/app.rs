@@ -130,13 +130,11 @@ impl App {
             last_cursor_blink: Instant::now(),
         };
 
-        // Apply theme from config
         if app.config.theme_index < app.themes.len() {
             app.current_theme_index = app.config.theme_index;
             app.theme = app.themes[app.current_theme_index].clone();
         }
 
-        // Apply storage threshold
         let threshold_bytes = app
             .config
             .storage_min_threshold_mb
@@ -151,22 +149,18 @@ impl App {
         info!("Starting main event loop");
 
         while !self.should_quit {
-            // Update data if interval has passed
             if self.last_update.elapsed() >= self.update_interval {
                 self.update()?;
                 self.last_update = Instant::now();
             }
 
-            // Toggle cursor blink every 530ms
             if self.last_cursor_blink.elapsed() >= Duration::from_millis(530) {
                 self.cursor_visible = !self.cursor_visible;
                 self.last_cursor_blink = Instant::now();
             }
 
-            // Render UI
             terminal.draw(|f| layout::render(f, self))?;
 
-            // Handle events with timeout
             if event::poll(Duration::from_millis(100))? {
                 if let Event::Key(key) = event::read()? {
                     self.handle_key_event(key)?;
@@ -180,10 +174,8 @@ impl App {
 
     /// Update application state
     fn update(&mut self) -> Result<()> {
-        // Update system metrics
         self.metrics.update()?;
 
-        // Update plugins
         self.plugins.update_all();
 
         Ok(())
@@ -191,7 +183,6 @@ impl App {
 
     /// Handle keyboard input
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
-        // Global quit handlers
         if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
             self.should_quit = true;
             return Ok(());
@@ -202,12 +193,10 @@ impl App {
             return Ok(());
         }
 
-        // Handle input mode
         if self.input_mode {
             match key.code {
                 KeyCode::Char(c) => {
                     self.input_buffer.push(c);
-                    // Trigger search on every keystroke for Commands screen
                     if self.current_screen == Screen::Commands {
                         self.commands.search(&self.input_buffer)?;
                         self.selected_index = 0;
@@ -215,7 +204,6 @@ impl App {
                 }
                 KeyCode::Backspace => {
                     self.input_buffer.pop();
-                    // Trigger search on every keystroke for Commands screen
                     if self.current_screen == Screen::Commands {
                         self.commands.search(&self.input_buffer)?;
                         self.selected_index = 0;
@@ -235,7 +223,6 @@ impl App {
             return Ok(());
         }
 
-        // Settings screen specific handling
         if self.current_screen == Screen::Settings {
             const REFRESH_STEPS: [u64; 4] = [250, 500, 1000, 2000];
             const LOG_LEVELS: [&str; 5] = ["error", "warn", "info", "debug", "trace"]; 
@@ -252,20 +239,20 @@ impl App {
                 }
                 KeyCode::Left | KeyCode::Char('-') => {
                     match self.settings_selected {
-                        0 => { // theme prev
+                        0 => {
                             if self.current_theme_index == 0 { self.set_theme_by_index(self.themes.len()-1); } else { self.set_theme_by_index(self.current_theme_index - 1); }
                         }
-                        1 => { // refresh interval prev
+                        1 => {
                             let mut idx = REFRESH_STEPS.iter().position(|v| *v == self.config.refresh_interval_ms).unwrap_or(2);
                             if idx > 0 { idx -= 1; }
                             self.set_refresh_interval_ms(REFRESH_STEPS[idx]);
                         }
-                        2 => { // log level prev
+                        2 => {
                             let mut idx = LOG_LEVELS.iter().position(|v| *v == self.config.log_level).unwrap_or(2);
                             if idx > 0 { idx -= 1; }
                             self.set_log_level(LOG_LEVELS[idx]);
                         }
-                        3 => { // threshold prev
+                        3 => {
                             let mut idx = THRESHOLD_STEPS_MB.iter().position(|v| *v == self.config.storage_min_threshold_mb).unwrap_or(0);
                             if idx > 0 { idx -= 1; }
                             self.set_storage_threshold_mb(THRESHOLD_STEPS_MB[idx]);
@@ -276,20 +263,20 @@ impl App {
                 }
                 KeyCode::Right | KeyCode::Char('+') => {
                     match self.settings_selected {
-                        0 => { // theme next
+                        0 => {
                             self.set_theme_by_index((self.current_theme_index + 1) % self.themes.len());
                         }
-                        1 => { // refresh interval next
+                        1 => {
                             let mut idx = REFRESH_STEPS.iter().position(|v| *v == self.config.refresh_interval_ms).unwrap_or(2);
                             if idx + 1 < REFRESH_STEPS.len() { idx += 1; }
                             self.set_refresh_interval_ms(REFRESH_STEPS[idx]);
                         }
-                        2 => { // log level next
+                        2 => {
                             let mut idx = LOG_LEVELS.iter().position(|v| *v == self.config.log_level).unwrap_or(2);
                             if idx + 1 < LOG_LEVELS.len() { idx += 1; }
                             self.set_log_level(LOG_LEVELS[idx]);
                         }
-                        3 => { // threshold next
+                        3 => {
                             let mut idx = THRESHOLD_STEPS_MB.iter().position(|v| *v == self.config.storage_min_threshold_mb).unwrap_or(0);
                             if idx + 1 < THRESHOLD_STEPS_MB.len() { idx += 1; }
                             self.set_storage_threshold_mb(THRESHOLD_STEPS_MB[idx]);
@@ -302,9 +289,7 @@ impl App {
             }
         }
 
-        // Navigation and screen-specific controls
         match key.code {
-            // Screen navigation
             KeyCode::Tab => {
                 self.current_screen = self.current_screen.next();
                 self.reset_selection();
@@ -314,7 +299,6 @@ impl App {
                 self.reset_selection();
             }
 
-            // Vim-style navigation
             KeyCode::Char('h') => {
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     self.previous_theme();
@@ -350,7 +334,6 @@ impl App {
                 self.move_selection_up();
             }
 
-            // Actions
             KeyCode::Enter => {
                 self.handle_enter()?;
             }
@@ -360,11 +343,9 @@ impl App {
                 }
             }
             KeyCode::Char('r') => {
-                // Refresh/rescan
                 self.handle_refresh()?;
             }
             KeyCode::Char('t') | KeyCode::Char('T') => {
-                // Toggle through themes (without modifier for ease of use)
                 self.next_theme();
             }
 
@@ -385,9 +366,7 @@ impl App {
         let max_items = self.get_max_items();
         if max_items > 0 && self.selected_index < max_items - 1 {
             self.selected_index += 1;
-            // Keep selection visible by scrolling if needed
-            // Each command takes 2 lines (title + description)
-            let visible_lines = 20; // Approximate visible height
+            let visible_lines = 20;
             let items_per_screen = visible_lines / 2;
             if self.selected_index >= self.scroll_offset + items_per_screen {
                 self.scroll_offset = self.selected_index.saturating_sub(items_per_screen - 1);
@@ -399,7 +378,6 @@ impl App {
     fn move_selection_up(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
-            // Keep selection visible by scrolling if needed
             if self.selected_index < self.scroll_offset {
                 self.scroll_offset = self.selected_index;
             }
@@ -419,14 +397,11 @@ impl App {
     fn handle_enter(&mut self) -> Result<()> {
         match self.current_screen {
             Screen::Storage => {
-                // Could implement drill-down into directory
                 info!("Storage item selected: {}", self.selected_index);
             }
             Screen::Commands => {
-                // Execute selected command
                 if let Some(cmd) = self.commands.get_selected_command(self.selected_index) {
                     info!("Would execute command: {}", cmd.command);
-                    // In production, add confirmation dialog and safe execution
                 }
             }
             _ => {}

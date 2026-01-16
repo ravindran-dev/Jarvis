@@ -111,7 +111,6 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     
     ];
 
-    // Add per-core information with simple bars
     for (i, core_usage) in cpu_data.per_core.iter().enumerate() {
         let simple_bar = create_simple_bar(*core_usage as f64, 14);
         let core_color = get_usage_color(*core_usage as f64);
@@ -207,12 +206,10 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
 
     let mut lines = vec![];
 
-    // Add top padding for vertical centering
     lines.push(Line::from(""));
     lines.push(Line::from(""));
     lines.push(Line::from(""));
 
-    // Make a copy we can iterate through
     let disk_list: Vec<_> = disks.iter().cloned().collect();
 
     if disk_list.is_empty() {
@@ -255,7 +252,6 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
         }
     }
 
-    // Add bottom padding for vertical centering
     lines.push(Line::from(""));
     lines.push(Line::from(""));
     lines.push(Line::from(""));
@@ -317,7 +313,6 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
         Line::from(""),
     ];
 
-    // Add temperature if available
     if let Some(temp) = app.metrics.get_temperature() {
         lines.push(Line::from(""));
         lines.push(Line::from(""));
@@ -331,7 +326,6 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
         lines.push(Line::from(""));
         lines.push(Line::from(""));
     } else {
-        // Add padding if no temperature
         for _ in 0..6 {
             lines.push(Line::from(""));
         }
@@ -351,7 +345,7 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
 /// Create search input widget
 pub fn create_search_input(app: &App) -> Paragraph<'_> {
     let cursor = if app.input_mode && app.cursor_visible {
-        "█" // Blinking cursor
+        "█"
     } else {
         ""
     };
@@ -421,20 +415,19 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
                 format!("   ✓  {}", cmd.command)
             };
 
-            // Create a full-width separator line (elongated)
             let separator_line = "─".repeat(300);
 
             ListItem::new(vec![
                 Line::from(vec![
                     Span::styled(title, cmd_style),
-                    Span::styled(" ".repeat(300), cmd_style), // Full width highlight background
+                    Span::styled(" ".repeat(300), cmd_style),
                 ]),
                 Line::from(vec![
                     Span::styled(
                         format!("     {}", cmd.description),
                         desc_style,
                     ),
-                    Span::styled(" ".repeat(300), desc_style), // Full width highlight background
+                    Span::styled(" ".repeat(300), desc_style),
                 ]),
                 Line::from(vec![
                     Span::styled(separator_line, separator_style),

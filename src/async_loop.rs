@@ -40,11 +40,8 @@ impl AsyncEventLoop {
 
         let task = tokio::spawn(async move {
             loop {
-                // Sleep to avoid busy-waiting
                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                 
-                // In a real implementation, events would be read from crossterm here
-                // For now, this is a placeholder for the async event loop
                 debug!("Async event loop tick");
             }
         });

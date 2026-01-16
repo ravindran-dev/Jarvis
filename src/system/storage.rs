@@ -42,10 +42,9 @@ impl StorageAnalyzer {
             results: Arc::new(Mutex::new(Vec::new())),
             scanning: Arc::new(Mutex::new(false)),
             scan_paths,
-            min_threshold_bytes: 1024 * 1024, // 1 MB default
+            min_threshold_bytes: 1024 * 1024,
         };
 
-        // Start initial scan
         analyzer.start_scan()?;
 
         Ok(analyzer)
@@ -68,7 +67,6 @@ impl StorageAnalyzer {
 
     /// Start a background scan of configured directories
     pub fn start_scan(&self) -> Result<()> {
-        // Check if already scanning
         if self.is_scanning() {
             return Ok(());
         }
@@ -78,24 +76,18 @@ impl StorageAnalyzer {
         let paths = self.scan_paths.clone();
         let threshold = self.min_threshold_bytes;
 
-        // Mark as scanning
         *scanning.lock().unwrap() = true;
 
-        // Spawn background thread for scanning
         thread::spawn(move || {
             let scan_results = Self::scan_directories(&paths, threshold);
 
-            // Sort by size descending
             let mut sorted_results = scan_results;
             sorted_results.sort_by(|a, b| b.size.cmp(&a.size));
 
-            // Take top 50 largest
             sorted_results.truncate(50);
 
-            // Update results
             *results.lock().unwrap() = sorted_results;
 
-            // Mark as complete
             *scanning.lock().unwrap() = false;
         });
 
@@ -115,7 +107,6 @@ impl StorageAnalyzer {
     fn scan_directory(root: &Path, min_threshold_bytes: u64) -> Vec<DirectoryItem> {
         let mut directory_sizes: Vec<DirectoryItem> = Vec::new();
 
-        // First level: direct children of root
         if let Ok(entries) = std::fs::read_dir(root) {
             let children: Vec<_> = entries
                 .filter_map(|e| e.ok())
@@ -123,13 +114,11 @@ impl StorageAnalyzer {
                 .map(|e| e.path())
                 .collect();
 
-            // Process children in parallel
             let results: Vec<DirectoryItem> = children
                 .par_iter()
                 .filter_map(|child_path| {
                     let size_info = Self::calculate_directory_size(child_path);
                     if size_info.0 >= min_threshold_bytes {
-                        // Only include dirs > 1MB
                         Some(DirectoryItem {
                             path: child_path.to_string_lossy().to_string(),
                             size: size_info.0,

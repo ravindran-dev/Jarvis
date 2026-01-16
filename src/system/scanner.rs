@@ -54,7 +54,6 @@ impl StorageScanner {
     pub fn scan_directory(&self, path: &Path, top_n: usize) -> Result<Vec<DirectoryEntry>> {
         debug!("Starting directory scan of: {:?}", path);
 
-        // Reset progress
         if let Ok(mut p) = self.progress.lock() {
             p.scanned_items = 0;
             p.directories_analyzed = 0;
@@ -64,7 +63,6 @@ impl StorageScanner {
 
         let mut entries = Vec::new();
 
-        // Walk directory with depth limit
         for entry in WalkDir::new(path)
             .max_depth(3)
             .into_iter()
@@ -72,7 +70,6 @@ impl StorageScanner {
         {
             let path = entry.path();
 
-            // Update progress
             if let Ok(mut p) = self.progress.lock() {
                 p.scanned_items += 1;
             }
@@ -88,7 +85,6 @@ impl StorageScanner {
                         file_count,
                     });
 
-                    // Update progress
                     if let Ok(mut p) = self.progress.lock() {
                         p.directories_analyzed += 1;
                         p.total_size += size;
@@ -97,11 +93,9 @@ impl StorageScanner {
             }
         }
 
-        // Sort by size descending and take top_n
         entries.sort_by(|a, b| b.size.cmp(&a.size));
         entries.truncate(top_n);
 
-        // Mark as complete
         if let Ok(mut p) = self.progress.lock() {
             p.is_complete = true;
         }

@@ -69,7 +69,6 @@ impl SystemMetrics {
 
     /// Update all system metrics
     pub fn update(&mut self) -> Result<()> {
-        // Refresh CPU, memory, disk, and network information
         self.system.refresh_cpu();
         self.system.refresh_memory();
         self.disks.refresh();
@@ -138,7 +137,6 @@ impl SystemMetrics {
             total_sent += network.total_transmitted();
         }
 
-        // Calculate rates (bytes per second)
         let rx_rate = total_received.saturating_sub(self.previous_net_rx);
         let tx_rate = total_sent.saturating_sub(self.previous_net_tx);
 
@@ -162,14 +160,12 @@ impl SystemMetrics {
     fn read_temperature_from_procfs(&self) -> Option<f32> {
         use std::fs;
 
-        // Try common thermal zones
         for i in 0..10 {
             let path = format!("/sys/class/thermal/thermal_zone{}/temp", i);
             if let Ok(content) = fs::read_to_string(&path) {
                 if let Ok(temp_millidegrees) = content.trim().parse::<i32>() {
                     let temp_celsius = temp_millidegrees as f32 / 1000.0;
                     if temp_celsius > 0.0 && temp_celsius < 150.0 {
-                        // Sanity check
                         return Some(temp_celsius);
                     }
                 }

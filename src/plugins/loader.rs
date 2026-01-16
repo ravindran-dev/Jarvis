@@ -66,7 +66,6 @@ impl PluginLoader {
             let entry = entry?;
             let path = entry.path();
 
-            // Look for .so (Linux) or .dll (Windows) or .dylib (macOS) files
             if let Some(extension) = path.extension() {
                 if self.is_plugin_file(&extension) {
                     if let Ok(info) = self.extract_plugin_info(&path) {
@@ -98,7 +97,6 @@ impl PluginLoader {
             .ok_or_else(|| anyhow!("Invalid plugin file"))?
             .to_string();
 
-        // Remove "lib" prefix if present
         let name = if name.starts_with("lib") {
             name[3..].to_string()
         } else {

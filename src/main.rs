@@ -45,34 +45,26 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<io::Stdout>>) -> Res
 }
 
 fn main() -> Result<()> {
-    // Initialize logging - only show errors
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Error)
         .init();
 
-    // Initialize theme system (default to dark theme)
     let _theme = Theme::dark();
 
-    // Initialize plugin loader
     let mut plugin_loader = PluginLoader::default();
     plugin_loader.validate_plugins_dir()?;
     let _ = plugin_loader.discover();
 
-    // Set up terminal
     let mut terminal = setup_terminal()?;
 
-    // Create app state
     let mut app = App::new()?;
 
-    // Run the application
     let result = app.run(&mut terminal);
 
-    // Restore terminal
     if let Err(e) = restore_terminal(terminal) {
         error!("Failed to restore terminal: {}", e);
     }
 
-    // Handle any errors from the app
     if let Err(e) = result {
         error!("Application error: {}", e);
         return Err(e);

@@ -44,7 +44,6 @@ impl CommandIndex {
 
     /// Load commands from embedded or external JSON file
     fn load_commands() -> Result<Vec<Command>> {
-        // First try to load from config directory
         if let Some(config_dir) = dirs::config_dir() {
             let config_path = config_dir.join("jarvis").join("commands.json");
             if config_path.exists() {
@@ -57,7 +56,6 @@ impl CommandIndex {
             }
         }
 
-        // Fallback to embedded default commands
         info!("Loading default embedded commands");
         Ok(Self::get_default_commands())
     }
@@ -1055,7 +1053,6 @@ impl CommandIndex {
 
         let query_lower = query.to_lowercase();
 
-        // Score and filter commands - be strict about matching
         let mut scored_commands: Vec<(Command, i64)> = self
             .commands
             .iter()
@@ -1065,29 +1062,22 @@ impl CommandIndex {
                 
                 let mut score: i64 = 0;
                 
-                // Exact command prefix match (highest priority)
                 if cmd_lower.starts_with(&query_lower) {
                     score += 10000;
                 }
-                // Command contains as a complete word (separated by space or dash)
                 else if cmd_lower.split(|c: char| c == ' ' || c == '-')
                     .any(|word| word.starts_with(&query_lower)) {
                     score += 5000;
                 }
-                // Command contains the query (case-insensitive)
                 else if cmd_lower.contains(&query_lower) {
                     score += 2000;
                 } else {
-                    // No match in command name, skip unless description matches
                     score = 0;
                 }
                 
-                // Only apply fuzzy matching if we already have some score
-                // This prevents loose fuzzy matches
                 if score > 0 {
-                    // Apply fuzzy matching only as a tiebreaker, not primary match
                     if let Some(fuzzy_score) = self.matcher.fuzzy_match(&cmd.command, &query_lower) {
-                        score += (fuzzy_score as i64) / 10; // Reduce fuzzy impact
+                        score += (fuzzy_score as i64) / 10;
                     }
                     return Some((cmd.clone(), score));
                 }
@@ -1096,7 +1086,6 @@ impl CommandIndex {
             })
             .collect();
 
-        // Sort by score descending
         scored_commands.sort_by(|a, b| b.1.cmp(&a.1));
 
         self.search_results = scored_commands
