@@ -25,7 +25,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
         .split(size);
 
     // Render title
-    render_title(f, chunks[0]);
+    render_title(f, chunks[0], app);
 
     // Render header with navigation tabs
     render_header(f, app, chunks[1]);
@@ -43,10 +43,10 @@ pub fn render(f: &mut Frame, app: &mut App) {
 }
 
 /// Render the title
-fn render_title(f: &mut Frame, area: Rect) {
+fn render_title(f: &mut Frame, area: Rect, app: &App) {
     let title = Paragraph::new(Line::from(vec![
-        Span::styled("  J A R V I S  ", Style::default()
-            .fg(Color::Cyan)
+        Span::styled("  J A R V I S  ", Style::default()
+            .fg(app.theme.primary)
             .add_modifier(Modifier::BOLD | Modifier::ITALIC)),
         Span::styled("- System Monitor & Command Assistant", Style::default()
             .fg(Color::DarkGray)),
@@ -54,7 +54,7 @@ fn render_title(f: &mut Frame, area: Rect) {
     .alignment(Alignment::Center)
     .block(Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)));
+        .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)));
     
     f.render_widget(title, area);
 }
@@ -73,13 +73,13 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let tabs = Tabs::new(titles)
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         .select(selected_index)
         .style(Style::default().fg(Color::DarkGray))
         .highlight_style(
             Style::default()
                 .fg(Color::Black)
-                .bg(Color::Cyan)
+                .bg(app.theme.primary)
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -160,40 +160,64 @@ fn render_commands_screen(f: &mut Frame, app: &App, area: Rect) {
 }
 
 /// Render the settings screen
-fn render_settings_screen(f: &mut Frame, _app: &App, area: Rect) {
-    let settings_text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            "Settings",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
-        )),
-        Line::from(""),
-        Line::from("Update Interval: 1 second"),
-        Line::from("Storage Scan Threads: Auto"),
-        Line::from("Log Level: Info"),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Plugin Configuration",
-            Style::default().fg(Color::Yellow),
-        )),
-        Line::from("No plugins loaded"),
-        Line::from(""),
-        Line::from(Span::styled(
-            "Future Features:",
-            Style::default().fg(Color::Green),
-        )),
-        Line::from("• Customizable refresh intervals"),
-        Line::from("• Theme selection"),
-        Line::from("• Export reports"),
-        Line::from("• Plugin management"),
+fn render_settings_screen(f: &mut Frame, app: &App, area: Rect) {
+    // Build dynamic settings lines
+    let themes = app.get_available_themes();
+    let theme_name = themes.get(app.get_current_theme_index()).map(|t| t.name.as_str()).unwrap_or("dark");
+    let interval = format!("{} ms", app.config.refresh_interval_ms);
+    let log_level = app.config.log_level.to_uppercase();
+    let threshold = format!("{} MB", app.config.storage_min_threshold_mb);
+
+    let mut lines: Vec<Line> = Vec::new();
+    lines.push(Line::from(Span::styled(
+        "Settings",
+        Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from(""));
+
+    let items = vec![
+        ("Theme", theme_name.to_string()),
+        ("Refresh Interval", interval),
+        ("Log Level", log_level),
+        ("Storage Min Threshold", threshold),
     ];
 
-    let paragraph = Paragraph::new(settings_text)
+    for (i, (label, value)) in items.iter().enumerate() {
+        let selected = i == app.settings_selected;
+        let style = if selected {
+            Style::default().fg(Color::Black).bg(app.theme.primary).add_modifier(Modifier::BOLD)
+        } else {
+            Style::default()
+        };
+        lines.push(Line::from(vec![
+            Span::styled(format!("{:<24}", label), style),
+            Span::styled(value.clone(), style),
+            Span::raw(" ".repeat(120)),
+        ]));
+        lines.push(Line::from(Span::styled("─".repeat(120), Style::default().fg(Color::DarkGray))));
+    }
+
+    // Plugins section
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(
+        "Plugins",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    let plugins = app.plugins.list_with_status();
+    if plugins.is_empty() {
+        lines.push(Line::from("No plugins loaded"));
+    } else {
+        for (name, enabled) in plugins {
+            lines.push(Line::from(format!("{} [{}]", name, if enabled { "Enabled" } else { "Disabled" })));
+        }
+    }
+
+    let paragraph = Paragraph::new(lines)
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Settings ")
-                .style(Style::default().fg(Color::White)),
+                .style(Style::default().fg(app.theme.primary)),
         )
         .alignment(Alignment::Left);
 
@@ -213,7 +237,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
             "h l: Switch | j k: Navigate | /: Search | Enter: Execute | q: Quit"
         }
         Screen::Settings => {
-            "h l: Switch | q: Quit"
+            "Tab: Switch | j k: Navigate | ←→ / -+: Adjust | t: Toggle Theme | q: Quit"
         }
     };
 
@@ -222,7 +246,7 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     ]))
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);

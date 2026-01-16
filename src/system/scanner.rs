@@ -78,7 +78,7 @@ impl StorageScanner {
             }
 
             if path.is_dir() {
-                if let Ok(metadata) = path.metadata() {
+                if let Ok(_metadata) = path.metadata() {
                     let size = Self::get_dir_size(path)?;
                     let file_count = Self::count_files(path)?;
 

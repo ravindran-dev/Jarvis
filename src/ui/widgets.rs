@@ -26,6 +26,7 @@ pub fn create_storage_status(app: &App) -> Paragraph<'static> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_style(Style::default().fg(app.theme.primary))
                 .title(" Storage Status "),
         )
         .style(Style::default().fg(Color::White))
@@ -49,7 +50,7 @@ pub fn create_storage_table(app: &App) -> Table<'static> {
             let style = if idx == app.selected_index {
                 Style::default()
                     .fg(Color::Black)
-                    .bg(Color::Cyan)
+                    .bg(app.theme.primary)
                     .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::White)
@@ -75,11 +76,12 @@ pub fn create_storage_table(app: &App) -> Table<'static> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_style(Style::default().fg(app.theme.primary))
                 .title(" Directory Sizes (Largest First) "),
         )
         .header(
             Row::new(vec!["Path", "Size", "Files"])
-                .style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+                .style(Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD))
                 .bottom_margin(1),
         )
         .column_spacing(1)
@@ -95,7 +97,7 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     let mut lines = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("  CPU Usage: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("  CPU Usage: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(format!("{:.1}%", cpu_data.usage), Style::default().fg(overall_color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
@@ -123,8 +125,8 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" CPU CORES ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" CPU CORES ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -141,21 +143,21 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     } else {
         0.0
     };
-    let swap_bar = create_unicode_bar(swap_percent, 40);
+    let _swap_bar = create_unicode_bar(swap_percent, 40);
     let swap_color = get_usage_color(swap_percent);
 
     let lines = vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("RAM Total: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("RAM Total: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(format!("{:.1} GB", mem_data.total as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::White)),
         ]),
         Line::from(vec![
-            Span::styled("RAM Used:  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("RAM Used:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(format!("{:.2} GB", mem_data.used as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(mem_color)),
         ]),
         Line::from(vec![
-            Span::styled("RAM Avail: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("RAM Avail: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(format!("{:.2} GB", mem_data.available as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::Green)),
         ]),
         Line::from(""),
@@ -165,7 +167,7 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Swap: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("Swap: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{} / {:.2} GB",
                     format::format_bytes(mem_data.swap_used),
@@ -182,8 +184,8 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" MEMORY ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" MEMORY ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -216,7 +218,7 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
             lines.push(Line::from(vec![
                 Span::styled(
                     format!("{}", disk.mount_point.clone()),
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
                 ),
             ]));
 
@@ -246,8 +248,8 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-                .title(Span::styled("  DISK ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .title(Span::styled("  DISK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -273,17 +275,17 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled(" TX Total: ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(" TX Total: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}", format::format_bytes(net_data.sent)),
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(vec![
-            Span::styled(" TX Rate:  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(" TX Rate:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}/s", format::format_bytes(net_data.tx_rate)),
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(""),
@@ -316,8 +318,8 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" NETWORK ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .title(Span::styled(" NETWORK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -347,10 +349,10 @@ pub fn create_search_input(app: &App) -> Paragraph<'_> {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
             .title(Span::styled(
                 if app.input_mode { " SEARCH MODE " } else { " SEARCH " },
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+                Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)
             )),
     )
 }
@@ -364,23 +366,23 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
         .map(|(idx, cmd)| {
             let selected = idx == app.selected_index;
 
-            let (cmd_style, desc_style, separator_style, bg_color) = if selected {
+            let (cmd_style, desc_style, separator_style, _bg_color) = if selected {
                 (
                     Style::default()
                         .fg(Color::Black)
-                        .bg(Color::Cyan)
+                        .bg(app.theme.primary)
                         .add_modifier(Modifier::BOLD),
                     Style::default()
                         .fg(Color::Black)
-                        .bg(Color::Cyan),
+                        .bg(app.theme.primary),
                     Style::default()
                         .fg(Color::Black)
-                        .bg(Color::Cyan),
-                    Color::Cyan,
+                        .bg(app.theme.primary),
+                    app.theme.primary,
                 )
             } else {
                 (
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                    Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
                     Style::default().fg(Color::DarkGray),
                     Style::default().fg(Color::DarkGray),
                     Color::Reset,
@@ -388,9 +390,9 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
             };
 
             let title = if cmd.dangerous {
-                format!("   󰞍  [DANGER] {}", cmd.command)
+                format!("    [DANGER] {}", cmd.command)
             } else {
-                format!("   󰗎  {}", cmd.command)
+                format!("     {}", cmd.command)
             };
 
             // Create a full-width separator line (elongated)
@@ -422,10 +424,10 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
                 .title(Span::styled(
                     format!(" COMMANDS ({}/{}) ", app.selected_index + 1, results.len()),
-                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+                    Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)
                 ))
         )
         .style(Style::default());

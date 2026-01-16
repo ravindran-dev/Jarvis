@@ -21,6 +21,8 @@ pub struct StorageAnalyzer {
     scanning: Arc<Mutex<bool>>,
     /// Paths to scan
     scan_paths: Vec<PathBuf>,
+    /// Minimum size threshold to include a directory (bytes)
+    min_threshold_bytes: u64,
 }
 
 impl StorageAnalyzer {
@@ -40,6 +42,7 @@ impl StorageAnalyzer {
             results: Arc::new(Mutex::new(Vec::new())),
             scanning: Arc::new(Mutex::new(false)),
             scan_paths,
+            min_threshold_bytes: 1024 * 1024, // 1 MB default
         };
 
         // Start initial scan
@@ -73,13 +76,14 @@ impl StorageAnalyzer {
         let results = Arc::clone(&self.results);
         let scanning = Arc::clone(&self.scanning);
         let paths = self.scan_paths.clone();
+        let threshold = self.min_threshold_bytes;
 
         // Mark as scanning
         *scanning.lock().unwrap() = true;
 
         // Spawn background thread for scanning
         thread::spawn(move || {
-            let scan_results = Self::scan_directories(&paths);
+            let scan_results = Self::scan_directories(&paths, threshold);
 
             // Sort by size descending
             let mut sorted_results = scan_results;
@@ -99,16 +103,16 @@ impl StorageAnalyzer {
     }
 
     /// Scan multiple directories in parallel
-    fn scan_directories(paths: &[PathBuf]) -> Vec<DirectoryItem> {
+    fn scan_directories(paths: &[PathBuf], min_threshold_bytes: u64) -> Vec<DirectoryItem> {
         paths
             .par_iter()
             .filter(|path| path.exists())
-            .flat_map(|path| Self::scan_directory(path))
+            .flat_map(|path| Self::scan_directory(path, min_threshold_bytes))
             .collect()
     }
 
     /// Scan a single directory and return items
-    fn scan_directory(root: &Path) -> Vec<DirectoryItem> {
+    fn scan_directory(root: &Path, min_threshold_bytes: u64) -> Vec<DirectoryItem> {
         let mut directory_sizes: Vec<DirectoryItem> = Vec::new();
 
         // First level: direct children of root
@@ -124,7 +128,7 @@ impl StorageAnalyzer {
                 .par_iter()
                 .filter_map(|child_path| {
                     let size_info = Self::calculate_directory_size(child_path);
-                    if size_info.0 > 1024 * 1024 {
+                    if size_info.0 >= min_threshold_bytes {
                         // Only include dirs > 1MB
                         Some(DirectoryItem {
                             path: child_path.to_string_lossy().to_string(),
@@ -163,5 +167,10 @@ impl StorageAnalyzer {
         }
 
         (total_size, file_count)
+    }
+
+    /// Update the minimum size threshold (in bytes)
+    pub fn set_min_threshold_bytes(&mut self, bytes: u64) {
+        self.min_threshold_bytes = bytes;
     }
 }

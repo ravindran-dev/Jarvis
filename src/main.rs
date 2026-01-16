@@ -9,6 +9,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 
 mod app;
+mod config;
 mod async_loop;
 mod commands;
 mod plugins;

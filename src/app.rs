@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::commands::CommandIndex;
 use crate::plugins::PluginManager;
+use crate::config::Config;
 use crate::system::{metrics::SystemMetrics, storage::StorageAnalyzer};
 use crate::theme::Theme;
 use crate::ui::layout;
@@ -66,6 +67,8 @@ pub struct App {
     pub commands: CommandIndex,
     /// Plugin manager
     pub plugins: PluginManager,
+    /// Persistent configuration
+    pub config: Config,
     /// Current theme
     pub theme: Theme,
     /// Available themes
@@ -84,6 +87,8 @@ pub struct App {
     pub input_buffer: String,
     /// Whether input mode is active
     pub input_mode: bool,
+    /// Selected index in Settings
+    pub settings_selected: usize,
 }
 
 impl App {
@@ -97,8 +102,9 @@ impl App {
         let plugins = PluginManager::new();
         let themes = Theme::all();
         let theme = themes[0].clone();
+        let config = Config::load();
 
-        Ok(Self {
+        let mut app = Self {
             should_quit: false,
             current_screen: Screen::Metrics,
             metrics,
@@ -109,12 +115,29 @@ impl App {
             themes,
             current_theme_index: 0,
             last_update: Instant::now(),
-            update_interval: Duration::from_secs(1),
+            update_interval: Duration::from_millis(config.refresh_interval_ms),
             selected_index: 0,
             scroll_offset: 0,
             input_buffer: String::new(),
             input_mode: false,
-        })
+            config,
+            settings_selected: 0,
+        };
+
+        // Apply theme from config
+        if app.config.theme_index < app.themes.len() {
+            app.current_theme_index = app.config.theme_index;
+            app.theme = app.themes[app.current_theme_index].clone();
+        }
+
+        // Apply storage threshold
+        let threshold_bytes = app
+            .config
+            .storage_min_threshold_mb
+            .saturating_mul(1024 * 1024);
+        app.storage.set_min_threshold_bytes(threshold_bytes);
+
+        Ok(app)
     }
 
     /// Run the main application loop
@@ -200,6 +223,73 @@ impl App {
             return Ok(());
         }
 
+        // Settings screen specific handling
+        if self.current_screen == Screen::Settings {
+            const REFRESH_STEPS: [u64; 4] = [250, 500, 1000, 2000];
+            const LOG_LEVELS: [&str; 5] = ["error", "warn", "info", "debug", "trace"]; 
+            const THRESHOLD_STEPS_MB: [u64; 5] = [1, 10, 100, 500, 1024];
+
+            match key.code {
+                KeyCode::Char('j') | KeyCode::Down => {
+                    if self.settings_selected < 3 { self.settings_selected += 1; }
+                    return Ok(());
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    if self.settings_selected > 0 { self.settings_selected -= 1; }
+                    return Ok(());
+                }
+                KeyCode::Left | KeyCode::Char('-') => {
+                    match self.settings_selected {
+                        0 => { // theme prev
+                            if self.current_theme_index == 0 { self.set_theme_by_index(self.themes.len()-1); } else { self.set_theme_by_index(self.current_theme_index - 1); }
+                        }
+                        1 => { // refresh interval prev
+                            let mut idx = REFRESH_STEPS.iter().position(|v| *v == self.config.refresh_interval_ms).unwrap_or(2);
+                            if idx > 0 { idx -= 1; }
+                            self.set_refresh_interval_ms(REFRESH_STEPS[idx]);
+                        }
+                        2 => { // log level prev
+                            let mut idx = LOG_LEVELS.iter().position(|v| *v == self.config.log_level).unwrap_or(2);
+                            if idx > 0 { idx -= 1; }
+                            self.set_log_level(LOG_LEVELS[idx]);
+                        }
+                        3 => { // threshold prev
+                            let mut idx = THRESHOLD_STEPS_MB.iter().position(|v| *v == self.config.storage_min_threshold_mb).unwrap_or(0);
+                            if idx > 0 { idx -= 1; }
+                            self.set_storage_threshold_mb(THRESHOLD_STEPS_MB[idx]);
+                        }
+                        _ => {}
+                    }
+                    return Ok(());
+                }
+                KeyCode::Right | KeyCode::Char('+') => {
+                    match self.settings_selected {
+                        0 => { // theme next
+                            self.set_theme_by_index((self.current_theme_index + 1) % self.themes.len());
+                        }
+                        1 => { // refresh interval next
+                            let mut idx = REFRESH_STEPS.iter().position(|v| *v == self.config.refresh_interval_ms).unwrap_or(2);
+                            if idx + 1 < REFRESH_STEPS.len() { idx += 1; }
+                            self.set_refresh_interval_ms(REFRESH_STEPS[idx]);
+                        }
+                        2 => { // log level next
+                            let mut idx = LOG_LEVELS.iter().position(|v| *v == self.config.log_level).unwrap_or(2);
+                            if idx + 1 < LOG_LEVELS.len() { idx += 1; }
+                            self.set_log_level(LOG_LEVELS[idx]);
+                        }
+                        3 => { // threshold next
+                            let mut idx = THRESHOLD_STEPS_MB.iter().position(|v| *v == self.config.storage_min_threshold_mb).unwrap_or(0);
+                            if idx + 1 < THRESHOLD_STEPS_MB.len() { idx += 1; }
+                            self.set_storage_threshold_mb(THRESHOLD_STEPS_MB[idx]);
+                        }
+                        _ => {}
+                    }
+                    return Ok(());
+                }
+                _ => {}
+            }
+        }
+
         // Navigation and screen-specific controls
         match key.code {
             // Screen navigation
@@ -213,13 +303,33 @@ impl App {
             }
 
             // Vim-style navigation
-            KeyCode::Char('h') | KeyCode::Left => {
-                self.current_screen = self.current_screen.previous();
-                self.reset_selection();
+            KeyCode::Char('h') => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.previous_theme();
+                } else if self.current_screen != Screen::Settings {
+                    self.current_screen = self.current_screen.previous();
+                    self.reset_selection();
+                }
             }
-            KeyCode::Char('l') | KeyCode::Right => {
-                self.current_screen = self.current_screen.next();
-                self.reset_selection();
+            KeyCode::Left => {
+                if self.current_screen != Screen::Settings {
+                    self.current_screen = self.current_screen.previous();
+                    self.reset_selection();
+                }
+            }
+            KeyCode::Char('l') => {
+                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                    self.next_theme();
+                } else if self.current_screen != Screen::Settings {
+                    self.current_screen = self.current_screen.next();
+                    self.reset_selection();
+                }
+            }
+            KeyCode::Right => {
+                if self.current_screen != Screen::Settings {
+                    self.current_screen = self.current_screen.next();
+                    self.reset_selection();
+                }
             }
             KeyCode::Char('j') | KeyCode::Down => {
                 self.move_selection_down();
@@ -241,22 +351,9 @@ impl App {
                 // Refresh/rescan
                 self.handle_refresh()?;
             }
-            KeyCode::Char('>') | KeyCode::Right => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    self.next_theme();
-                    info!("Switched to next theme: {}", self.theme.name);
-                }
-            }
-            KeyCode::Char('<') | KeyCode::Left => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    self.previous_theme();
-                    info!("Switched to previous theme: {}", self.theme.name);
-                }
-            }
             KeyCode::Char('t') | KeyCode::Char('T') => {
                 // Toggle through themes (without modifier for ease of use)
                 self.next_theme();
-                info!("Switched to next theme: {}", self.theme.name);
             }
 
             _ => {}
@@ -356,6 +453,8 @@ impl App {
     pub fn next_theme(&mut self) {
         self.current_theme_index = (self.current_theme_index + 1) % self.themes.len();
         self.theme = self.themes[self.current_theme_index].clone();
+        self.config.theme_index = self.current_theme_index;
+        let _ = self.config.save();
         info!("Switched to theme: {}", self.theme.name);
     }
 
@@ -367,6 +466,8 @@ impl App {
             self.current_theme_index -= 1;
         }
         self.theme = self.themes[self.current_theme_index].clone();
+        self.config.theme_index = self.current_theme_index;
+        let _ = self.config.save();
         info!("Switched to theme: {}", self.theme.name);
     }
 
@@ -378,5 +479,36 @@ impl App {
     /// Get current theme index
     pub fn get_current_theme_index(&self) -> usize {
         self.current_theme_index
+    }
+
+    /// Apply and persist theme by index
+    pub fn set_theme_by_index(&mut self, idx: usize) {
+        if idx < self.themes.len() {
+            self.current_theme_index = idx;
+            self.theme = self.themes[idx].clone();
+            self.config.theme_index = idx;
+            let _ = self.config.save();
+        }
+    }
+
+    /// Adjust refresh interval in ms and persist
+    pub fn set_refresh_interval_ms(&mut self, ms: u64) {
+        self.update_interval = Duration::from_millis(ms);
+        self.config.refresh_interval_ms = ms;
+        let _ = self.config.save();
+    }
+
+    /// Adjust storage min threshold (MB) and persist + apply
+    pub fn set_storage_threshold_mb(&mut self, mb: u64) {
+        self.config.storage_min_threshold_mb = mb;
+        let bytes = mb.saturating_mul(1024 * 1024);
+        self.storage.set_min_threshold_bytes(bytes);
+        let _ = self.config.save();
+    }
+
+    /// Cycle log level value and persist (takes effect next run)
+    pub fn set_log_level(&mut self, level: &str) {
+        self.config.log_level = level.to_string();
+        let _ = self.config.save();
     }
 }

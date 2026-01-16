@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use log::{debug, error, info};
+use log::{debug, info};
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 

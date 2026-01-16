@@ -4,7 +4,7 @@ use log::debug;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
-use tokio_stream::StreamExt;
+
 
 /// Async event message types
 #[derive(Debug, Clone)]
@@ -36,7 +36,7 @@ impl AsyncEventLoop {
 
     /// Start the event loop (non-blocking)
     pub fn start(&mut self) -> mpsc::UnboundedSender<AsyncMessage> {
-        let sender = self.sender.clone();
+        let _sender = self.sender.clone();
 
         let task = tokio::spawn(async move {
             loop {

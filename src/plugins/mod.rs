@@ -3,7 +3,7 @@ pub mod loader;
 use log::debug;
 use std::collections::HashMap;
 
-pub use loader::{PluginLoader, PluginInfo};
+pub use loader::PluginLoader;
 
 /// Plugin trait for extensibility
 #[allow(dead_code)]
@@ -31,14 +31,13 @@ pub trait Plugin: Send + Sync {
 /// Plugin manager to handle multiple plugins
 pub struct PluginManager {
     plugins: HashMap<String, Box<dyn Plugin + 'static>>,
+    enabled: HashMap<String, bool>,
 }
 
 impl PluginManager {
     /// Create a new empty PluginManager
     pub fn new() -> Self {
-        Self {
-            plugins: HashMap::new(),
-        }
+        Self { plugins: HashMap::new(), enabled: HashMap::new() }
     }
 
     /// Register a new plugin
@@ -46,6 +45,7 @@ impl PluginManager {
     pub fn register(&mut self, plugin: Box<dyn Plugin>) {
         let name = plugin.name().to_string();
         debug!("Registering plugin: {}", name);
+        self.enabled.insert(name.clone(), true);
         self.plugins.insert(name, plugin);
     }
 
@@ -53,6 +53,7 @@ impl PluginManager {
     #[allow(dead_code)]
     pub fn unregister(&mut self, name: &str) -> Option<Box<dyn Plugin>> {
         debug!("Unregistering plugin: {}", name);
+        self.enabled.remove(name);
         self.plugins.remove(name)
     }
 
@@ -65,7 +66,9 @@ impl PluginManager {
     /// Update all enabled plugins
     pub fn update_all(&mut self) {
         for plugin in self.plugins.values_mut() {
-            if plugin.is_enabled() {
+            let name = plugin.name();
+            let enabled = self.enabled.get(name).copied().unwrap_or(true);
+            if enabled && plugin.is_enabled() {
                 plugin.update();
             }
         }
@@ -88,9 +91,27 @@ impl PluginManager {
     pub fn render_all(&self) -> Vec<(String, String)> {
         self.plugins
             .values()
-            .filter(|p| p.is_enabled())
+            .filter(|p| {
+                let name = p.name();
+                self.enabled.get(name).copied().unwrap_or(true) && p.is_enabled()
+            })
             .map(|p| (p.name().to_string(), p.render()))
             .collect()
+    }
+
+    /// List plugins with enabled status
+    pub fn list_with_status(&self) -> Vec<(String, bool)> {
+        self.plugins
+            .keys()
+            .map(|n| (n.clone(), self.enabled.get(n).copied().unwrap_or(true)))
+            .collect()
+    }
+
+    /// Enable or disable a plugin
+    pub fn set_enabled(&mut self, name: &str, enabled: bool) {
+        if self.plugins.contains_key(name) {
+            self.enabled.insert(name.to_string(), enabled);
+        }
     }
 }
 
