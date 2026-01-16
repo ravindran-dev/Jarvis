@@ -2,7 +2,7 @@
 name = "jarvis"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Ravindran S <ravindrans.dev@gmail.com>"]
 description = "Jarvis - A powerful Linux system monitoring dashboard"
 license = "MIT"
 readme = "README.md"
@@ -57,5 +57,5 @@ codegen-units = 1
 strip = true
 
 [[bin]]
-name = "systide"
+name = "jarvis"
 path = "src/main.rs"

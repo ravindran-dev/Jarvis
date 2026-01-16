@@ -14,6 +14,7 @@ pub struct CpuInfo {
 pub struct MemoryInfo {
     pub total: u64,
     pub used: u64,
+    #[allow(dead_code)]
     pub available: u64,
     pub swap_total: u64,
     pub swap_used: u64,

@@ -160,9 +160,19 @@ impl App {
             match key.code {
                 KeyCode::Char(c) => {
                     self.input_buffer.push(c);
+                    // Trigger search on every keystroke for Commands screen
+                    if self.current_screen == Screen::Commands {
+                        self.commands.search(&self.input_buffer)?;
+                        self.selected_index = 0;
+                    }
                 }
                 KeyCode::Backspace => {
                     self.input_buffer.pop();
+                    // Trigger search on every keystroke for Commands screen
+                    if self.current_screen == Screen::Commands {
+                        self.commands.search(&self.input_buffer)?;
+                        self.selected_index = 0;
+                    }
                 }
                 KeyCode::Enter => {
                     self.handle_input_submit()?;
@@ -237,6 +247,13 @@ impl App {
         let max_items = self.get_max_items();
         if max_items > 0 && self.selected_index < max_items - 1 {
             self.selected_index += 1;
+            // Keep selection visible by scrolling if needed
+            // Each command takes 2 lines (title + description)
+            let visible_lines = 20; // Approximate visible height
+            let items_per_screen = visible_lines / 2;
+            if self.selected_index >= self.scroll_offset + items_per_screen {
+                self.scroll_offset = self.selected_index.saturating_sub(items_per_screen - 1);
+            }
         }
     }
 
@@ -244,6 +261,10 @@ impl App {
     fn move_selection_up(&mut self) {
         if self.selected_index > 0 {
             self.selected_index -= 1;
+            // Keep selection visible by scrolling if needed
+            if self.selected_index < self.scroll_offset {
+                self.scroll_offset = self.selected_index;
+            }
         }
     }
 

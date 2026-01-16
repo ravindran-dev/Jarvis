@@ -40,9 +40,9 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<io::Stdout>>) -> Res
 }
 
 fn main() -> Result<()> {
-    // Initialize logging
+    // Initialize logging - only show errors
     env_logger::Builder::from_default_env()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(log::LevelFilter::Error)
         .init();
 
     // Set up terminal

@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Alignment, Constraint},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, List, ListItem, Paragraph, Row, Table},
+    widgets::{Block, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table},
 };
 
 use crate::app::App;
@@ -94,11 +94,11 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     
     let mut lines = vec![
         Line::from(vec![
-            Span::styled("TOTAL ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("▶ TOTAL ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)),
             Span::styled(overall_bar, Style::default().fg(overall_color)),
             Span::styled(
                 format!(" {:>5.1}%", cpu_data.usage),
-                Style::default().fg(overall_color).add_modifier(Modifier::BOLD),
+                Style::default().fg(overall_color).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             ),
         ]),
     ];
@@ -108,7 +108,7 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
         let bar = create_unicode_bar(*core_usage as f64, 45);
         let core_color = get_usage_color(*core_usage as f64);
         lines.push(Line::from(vec![
-            Span::styled(format!("C{:02} ", i), Style::default().fg(Color::Gray)),
+            Span::styled(format!("▸ {:02} ", i), Style::default().fg(Color::Rgb(100, 100, 255))),
             Span::styled(bar, Style::default().fg(core_color)),
             Span::styled(format!(" {:>5.1}%", core_usage), Style::default().fg(core_color)),
         ]));
@@ -117,7 +117,8 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     Paragraph::new(lines).block(
         Block::default()
             .borders(Borders::ALL)
-            .title(Span::styled(" CPU ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(Color::Rgb(0, 255, 255)))
+            .title(Span::styled(" ⚡ CPU CORES ⚡ ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)))
     )
 }
 
@@ -139,34 +140,34 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
 
     let lines = vec![
         Line::from(vec![
-            Span::styled("RAM  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("▶ RAM  ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)),
             Span::styled(mem_bar, Style::default().fg(mem_color)),
-            Span::styled(format!(" {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
+            Span::styled(format!(" {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD | Modifier::UNDERLINED)),
         ]),
         Line::from(vec![
-            Span::styled("     ", Style::default()),
+            Span::styled("       ", Style::default()),
             Span::styled(
                 format!("{} / {}",
                     format::format_bytes(mem_data.used),
                     format::format_bytes(mem_data.total)
                 ),
-                Style::default().fg(Color::Gray),
+                Style::default().fg(Color::Rgb(150, 150, 255)),
             ),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("SWAP ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("▶ SWAP ", Style::default().fg(Color::Rgb(255, 255, 0)).add_modifier(Modifier::BOLD)),
             Span::styled(swap_bar, Style::default().fg(swap_color)),
             Span::styled(format!(" {:.1}%", swap_percent), Style::default().fg(swap_color)),
         ]),
         Line::from(vec![
-            Span::styled("     ", Style::default()),
+            Span::styled("       ", Style::default()),
             Span::styled(
                 format!("{} / {}",
                     format::format_bytes(mem_data.swap_used),
                     format::format_bytes(mem_data.swap_total)
                 ),
-                Style::default().fg(Color::Gray),
+                Style::default().fg(Color::Rgb(200, 200, 100)),
             ),
         ]),
     ];
@@ -174,7 +175,8 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     Paragraph::new(lines).block(
         Block::default()
             .borders(Borders::ALL)
-            .title(Span::styled(" Memory ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(Color::Rgb(255, 0, 255)))
+            .title(Span::styled(" 💾 MEMORY BANKS 💾 ", Style::default().fg(Color::Rgb(255, 0, 255)).add_modifier(Modifier::BOLD)))
     )
 }
 
@@ -199,8 +201,8 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
 
         lines.push(Line::from(vec![
             Span::styled(
-                format!("{:<8}", disk.mount_point.clone()),
-                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+                format!("▶ {:<6}", disk.mount_point.clone()),
+                Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD),
             ),
             Span::styled(bar, Style::default().fg(disk_color)),
             Span::styled(format!(" {:>5.1}%", usage_percent), Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
@@ -213,7 +215,7 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
                     format::format_bytes(disk.used),
                     format::format_bytes(disk.total)
                 ),
-                Style::default().fg(Color::Gray),
+                Style::default().fg(Color::Rgb(150, 150, 200)),
             ),
         ]));
     }
@@ -221,7 +223,8 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
     Paragraph::new(lines).block(
         Block::default()
             .borders(Borders::ALL)
-            .title(Span::styled(" Disks ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(Color::Rgb(0, 255, 255)))
+            .title(Span::styled(" 💿 STORAGE DRIVES 💿 ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)))
     )
 }
 
@@ -231,26 +234,26 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
 
     let mut lines = vec![
         Line::from(vec![
-            Span::styled("RX  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled("▼ RX  ", Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{:>12}", format::format_bytes(net_data.received)),
-                Style::default().fg(Color::White),
+                Style::default().fg(Color::Rgb(200, 255, 200)),
             ),
             Span::styled(
                 format!("  {:>10}/s", format::format_bytes(net_data.rx_rate)),
-                Style::default().fg(Color::Green),
+                Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("TX  ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled("▲ TX  ", Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{:>12}", format::format_bytes(net_data.sent)),
-                Style::default().fg(Color::White),
+                Style::default().fg(Color::Rgb(200, 255, 255)),
             ),
             Span::styled(
                 format!("  {:>10}/s", format::format_bytes(net_data.tx_rate)),
-                Style::default().fg(Color::Cyan),
+                Style::default().fg(Color::Rgb(0, 255, 255)).add_modifier(Modifier::BOLD),
             ),
         ]),
     ];
@@ -260,10 +263,10 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
         lines.push(Line::from(""));
         lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled("TEMP ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("◈ TEMP ", Style::default().fg(Color::Rgb(255, 100, 0)).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{:.1}°C", temp),
-                Style::default().fg(get_temp_color(temp as f64)).add_modifier(Modifier::BOLD),
+                Style::default().fg(get_temp_color(temp as f64)).add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             ),
         ]));
     }
@@ -271,71 +274,100 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
     Paragraph::new(lines).block(
         Block::default()
             .borders(Borders::ALL)
-            .title(Span::styled(" Network ", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(Color::Rgb(0, 255, 0)))
+            .title(Span::styled(" 🌐 NETWORK I/O 🌐 ", Style::default().fg(Color::Rgb(0, 255, 0)).add_modifier(Modifier::BOLD)))
     )
 }
 
 /// Create search input widget
 pub fn create_search_input(app: &App) -> Paragraph<'_> {
-    let text = format!("> {}", app.input_buffer);
-    let style = if app.input_mode {
-        Style::default().fg(Color::Yellow)
+    let text = if app.input_mode {
+        format!("SEARCH: {}_", app.input_buffer)
     } else {
-        Style::default().fg(Color::DarkGray)
+        "SEARCH: (Press / to search)".to_string()
+    };
+    
+    let text_color = if app.input_mode {
+        Color::Yellow
+    } else {
+        Color::Gray
     };
 
-    Paragraph::new(text).block(
+    Paragraph::new(Line::from(vec![
+        Span::styled(text, Style::default().fg(text_color).add_modifier(Modifier::BOLD))
+    ]))
+    .block(
         Block::default()
             .borders(Borders::ALL)
-            .title(" Command Search "),
+            .border_style(Style::default().fg(Color::Cyan))
+            .title(Span::styled(
+                if app.input_mode { " SEARCH MODE " } else { " SEARCH " },
+                Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+            )),
     )
-    .style(style)
 }
 
 /// Create commands list widget
-pub fn create_commands_list(app: &App) -> List<'_> {
-    let items: Vec<ListItem> = app
-        .commands
-        .get_results()
+pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
+    let results = app.commands.get_results();
+    let items: Vec<ListItem> = results
         .iter()
         .enumerate()
         .map(|(idx, cmd)| {
             let selected = idx == app.selected_index;
-            let style = if selected {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD)
+
+            let (cmd_style, desc_style) = if selected {
+                (
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(Color::Black)
+                        .bg(Color::Cyan),
+                )
             } else {
-                Style::default().fg(Color::White)
+                (
+                    Style::default().fg(Color::Cyan),
+                    Style::default().fg(Color::Gray),
+                )
             };
 
             let title = if cmd.dangerous {
-                format!("[DANGEROUS] {}", cmd.command)
+                format!("[DANGER] {}", cmd.command)
             } else {
                 cmd.command.clone()
             };
 
             ListItem::new(vec![
                 Line::from(vec![
-                    Span::styled(title, style.add_modifier(Modifier::BOLD)),
+                    Span::styled(title, cmd_style),
                 ]),
                 Line::from(vec![
-                    Span::styled("  ", style),
                     Span::styled(
-                        format!("{}", cmd.description),
-                        style.fg(Color::Gray).remove_modifier(Modifier::BOLD),
+                        format!("  {}", cmd.description),
+                        desc_style,
                     ),
                 ]),
             ])
         })
         .collect();
 
-    List::new(items).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Commands "),
-    )
+    let mut state = ListState::default();
+    state.select(Some(app.selected_index));
+    
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(Color::Cyan))
+                .title(Span::styled(
+                    format!(" COMMANDS ({}/{}) ", app.selected_index + 1, results.len()),
+                    Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)
+                ))
+        );
+
+    (list, state)
 }
 
 /// Settings widget
@@ -377,6 +409,7 @@ pub fn create_settings_widget() -> Paragraph<'static> {
 }
 
 /// Create a text-based progress bar
+#[allow(dead_code)]
 fn create_bar(percentage: f64, width: usize) -> String {
     let filled = ((percentage / 100.0) * width as f64) as usize;
     let empty = width.saturating_sub(filled);
@@ -411,19 +444,19 @@ fn create_unicode_bar(percentage: f64, width: usize) -> String {
 /// Get color based on usage percentage
 fn get_usage_color(percent: f64) -> Color {
     match percent {
-        p if p < 25.0 => Color::Green,
-        p if p < 50.0 => Color::Yellow,
-        p if p < 75.0 => Color::Magenta,
-        _ => Color::Red,
+        p if p < 25.0 => Color::Rgb(0, 255, 100),      // Neon green
+        p if p < 50.0 => Color::Rgb(0, 255, 255),      // Cyan glow
+        p if p < 75.0 => Color::Rgb(255, 100, 255),    // Magenta glow
+        _ => Color::Rgb(255, 0, 100),                   // Hot pink/red
     }
 }
 
 /// Get color based on temperature
 fn get_temp_color(temp: f64) -> Color {
     match temp {
-        t if t < 40.0 => Color::Green,
-        t if t < 60.0 => Color::Yellow,
-        t if t < 80.0 => Color::Magenta,
-        _ => Color::Red,
+        t if t < 40.0 => Color::Rgb(0, 255, 200),      // Cool cyan
+        t if t < 60.0 => Color::Rgb(255, 255, 0),      // Yellow
+        t if t < 80.0 => Color::Rgb(255, 100, 0),      // Orange glow
+        _ => Color::Rgb(255, 0, 0),                     // Danger red
     }
 }

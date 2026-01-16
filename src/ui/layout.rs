@@ -40,7 +40,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
 
 /// Render the header with navigation tabs
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
-    let titles = vec!["Storage", "Metrics", "Commands", "Settings"];
+    let titles = vec!["STORAGE", "METRICS", "COMMANDS", "SETTINGS"];
     
     let selected_index = match app.current_screen {
         Screen::Storage => 0,
@@ -50,12 +50,15 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     };
 
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title(" Jarvis "))
+        .block(Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Cyan)))
         .select(selected_index)
-        .style(Style::default().fg(Color::White))
+        .style(Style::default().fg(Color::Gray))
         .highlight_style(
             Style::default()
-                .fg(Color::Cyan)
+                .fg(Color::Black)
+                .bg(Color::Cyan)
                 .add_modifier(Modifier::BOLD),
         );
 
@@ -130,9 +133,9 @@ fn render_commands_screen(f: &mut Frame, app: &App, area: Rect) {
     let search_widget = widgets::create_search_input(app);
     f.render_widget(search_widget, chunks[0]);
 
-    // Command list
-    let commands_widget = widgets::create_commands_list(app);
-    f.render_widget(commands_widget, chunks[1]);
+    // Command list with state
+    let (commands_widget, mut list_state) = widgets::create_commands_list(app);
+    f.render_stateful_widget(commands_widget, chunks[1], &mut list_state);
 }
 
 /// Render the settings screen
@@ -180,22 +183,25 @@ fn render_settings_screen(f: &mut Frame, _app: &App, area: Rect) {
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.current_screen {
         Screen::Storage => {
-            "← → / h l: Switch tabs | ↑ ↓ / j k: Navigate | r: Rescan | q: Quit"
+            "h l: Switch tabs | j k: Navigate | r: Rescan | q: Quit"
         }
         Screen::Metrics => {
-            "← → / h l: Switch tabs | r: Refresh | q: Quit"
+            "h l: Switch tabs | r: Refresh | q: Quit"
         }
         Screen::Commands => {
-            "← → / h l: Switch tabs | ↑ ↓ / j k: Navigate | /: Search | Enter: Execute | q: Quit"
+            "h l: Switch tabs | j k: Navigate | /: Search | Enter: Execute | q: Quit"
         }
         Screen::Settings => {
-            "← → / h l: Switch tabs | q: Quit"
+            "h l: Switch tabs | q: Quit"
         }
     };
 
-    let help = Paragraph::new(help_text)
-        .block(Block::default().borders(Borders::ALL).title(" Help "))
-        .style(Style::default().fg(Color::DarkGray))
+    let help = Paragraph::new(Line::from(vec![
+        Span::styled(help_text, Style::default().fg(Color::Gray)),
+    ]))
+        .block(Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Cyan)))
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);

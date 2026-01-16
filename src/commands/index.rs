@@ -239,31 +239,43 @@ impl CommandIndex {
 
         let query_lower = query.to_lowercase();
 
-        // Score and filter commands
+        // Score and filter commands - be strict about matching
         let mut scored_commands: Vec<(Command, i64)> = self
             .commands
             .iter()
             .filter_map(|cmd| {
-                // Try fuzzy matching on multiple fields
-                let desc_score = self.matcher.fuzzy_match(&cmd.description, &query_lower);
-                let cmd_score = self.matcher.fuzzy_match(&cmd.command, &query_lower);
-                let tag_score = cmd
-                    .tags
-                    .iter()
-                    .filter_map(|tag| self.matcher.fuzzy_match(tag, &query_lower))
-                    .max();
-
-                // Take the best score
-                let score = vec![desc_score, cmd_score, tag_score]
-                    .into_iter()
-                    .flatten()
-                    .max();
-
-                if let Some(s) = score {
-                    if s > 0 {
-                        return Some((cmd.clone(), s));
-                    }
+                let cmd_lower = cmd.command.to_lowercase();
+                let _desc_lower = cmd.description.to_lowercase();
+                
+                let mut score: i64 = 0;
+                
+                // Exact command prefix match (highest priority)
+                if cmd_lower.starts_with(&query_lower) {
+                    score += 10000;
                 }
+                // Command contains as a complete word (separated by space or dash)
+                else if cmd_lower.split(|c: char| c == ' ' || c == '-')
+                    .any(|word| word.starts_with(&query_lower)) {
+                    score += 5000;
+                }
+                // Command contains the query (case-insensitive)
+                else if cmd_lower.contains(&query_lower) {
+                    score += 2000;
+                } else {
+                    // No match in command name, skip unless description matches
+                    score = 0;
+                }
+                
+                // Only apply fuzzy matching if we already have some score
+                // This prevents loose fuzzy matches
+                if score > 0 {
+                    // Apply fuzzy matching only as a tiebreaker, not primary match
+                    if let Some(fuzzy_score) = self.matcher.fuzzy_match(&cmd.command, &query_lower) {
+                        score += (fuzzy_score as i64) / 10; // Reduce fuzzy impact
+                    }
+                    return Some((cmd.clone(), score));
+                }
+                
                 None
             })
             .collect();
@@ -274,7 +286,7 @@ impl CommandIndex {
         self.search_results = scored_commands
             .into_iter()
             .map(|(cmd, _)| cmd)
-            .take(20)
+            .take(50)
             .collect();
 
         info!("Found {} matching commands", self.search_results.len());
