@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Tabs},
+    widgets::{Block, Borders, BorderType, Paragraph, Tabs},
     Frame,
 };
 
@@ -45,7 +45,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
 /// Render the title
 fn render_title(f: &mut Frame, area: Rect, app: &App) {
     let title = Paragraph::new(Line::from(vec![
-        Span::styled("  J A R V I S  ", Style::default()
+        Span::styled("  J A R V I S  ", Style::default()
             .fg(app.theme.primary)
             .add_modifier(Modifier::BOLD | Modifier::ITALIC)),
         Span::styled("- System Monitor & Command Assistant", Style::default()
@@ -54,7 +54,8 @@ fn render_title(f: &mut Frame, area: Rect, app: &App) {
     .alignment(Alignment::Center)
     .block(Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)));
+        .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+        .border_type(BorderType::Rounded));
     
     f.render_widget(title, area);
 }
@@ -73,7 +74,8 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let tabs = Tabs::new(titles)
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+            .border_type(BorderType::Rounded))
         .select(selected_index)
         .style(Style::default().fg(Color::DarkGray))
         .highlight_style(
@@ -122,10 +124,12 @@ fn render_metrics_screen(f: &mut Frame, app: &mut App, area: Rect) {
         .split(chunks[0]);
 
     let cpu_widget = widgets::create_cpu_widget(app);
-    f.render_widget(cpu_widget, top_chunks[0]);
+    let cpu_area = centered_rect(96, 92, top_chunks[0]);
+    f.render_widget(cpu_widget, cpu_area);
 
     let memory_widget = widgets::create_memory_widget(app);
-    f.render_widget(memory_widget, top_chunks[1]);
+    let mem_area = centered_rect(96, 92, top_chunks[1]);
+    f.render_widget(memory_widget, mem_area);
 
     // Bottom section: Disk and Network
     let bottom_chunks = Layout::default()
@@ -134,10 +138,32 @@ fn render_metrics_screen(f: &mut Frame, app: &mut App, area: Rect) {
         .split(chunks[1]);
 
     let disk_widget = widgets::create_disk_widget(app);
-    f.render_widget(disk_widget, bottom_chunks[0]);
+    let disk_area = centered_rect(96, 92, bottom_chunks[0]);
+    f.render_widget(disk_widget, disk_area);
 
     let network_widget = widgets::create_network_widget(app);
-    f.render_widget(network_widget, bottom_chunks[1]);
+    let net_area = centered_rect(96, 92, bottom_chunks[1]);
+    f.render_widget(network_widget, net_area);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
+    let vertical = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Percentage(percent_y),
+            Constraint::Percentage((100 - percent_y) / 2),
+        ])
+        .split(area);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Percentage(percent_x),
+            Constraint::Percentage((100 - percent_x) / 2),
+        ])
+        .split(vertical[1])[1]
 }
 
 /// Render the command assistant screen
@@ -217,7 +243,8 @@ fn render_settings_screen(f: &mut Frame, app: &App, area: Rect) {
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Settings ")
-                .style(Style::default().fg(app.theme.primary)),
+                .style(Style::default().fg(app.theme.primary))
+                .border_type(BorderType::Rounded),
         )
         .alignment(Alignment::Left);
 
@@ -246,7 +273,8 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     ]))
         .block(Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+            .border_type(BorderType::Rounded))
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);

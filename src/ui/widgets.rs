@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Alignment, Constraint},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, List, ListItem, ListState, Paragraph, Row, Table},
+    widgets::{Block, Borders, BorderType, Cell, List, ListItem, ListState, Paragraph, Row, Table},
 };
 
 use crate::app::App;
@@ -27,6 +27,7 @@ pub fn create_storage_status(app: &App) -> Paragraph<'static> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary))
+                .border_type(BorderType::Rounded)
                 .title(" Storage Status "),
         )
         .style(Style::default().fg(Color::White))
@@ -77,6 +78,7 @@ pub fn create_storage_table(app: &App) -> Table<'static> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary))
+                .border_type(BorderType::Rounded)
                 .title(" Directory Sizes (Largest First) "),
         )
         .header(
@@ -92,29 +94,31 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
     let cpu_data = app.metrics.get_cpu_info();
 
     let overall_color = get_usage_color(cpu_data.usage as f64);
-    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 30);
+    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 50);
     
     let mut lines = vec![
         Line::from(""),
+        
         Line::from(vec![
-            Span::styled("  CPU Usage: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("  CPU Usage:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(format!("{:.1}%", cpu_data.usage), Style::default().fg(overall_color).add_modifier(Modifier::BOLD)),
         ]),
+        
         Line::from(""),
         Line::from(vec![
             Span::styled(overall_bar, Style::default().fg(overall_color).add_modifier(Modifier::BOLD)),
         ]),
-        Line::from(""),
+    
     ];
 
     // Add per-core information with simple bars
     for (i, core_usage) in cpu_data.per_core.iter().enumerate() {
-        let simple_bar = create_simple_bar(*core_usage as f64, 10);
+        let simple_bar = create_simple_bar(*core_usage as f64, 14);
         let core_color = get_usage_color(*core_usage as f64);
         lines.push(Line::from(vec![
-            Span::styled(format!("  Core {:2} : ", i), Style::default().fg(Color::DarkGray)),
+            Span::styled(format!("   Core {:2} :  ", i), Style::default().fg(Color::DarkGray)),
             Span::styled(simple_bar, Style::default().fg(core_color).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {:.1}%", core_usage), Style::default().fg(core_color)),
+            Span::styled(format!("   {:.1}%", core_usage), Style::default().fg(core_color)),
         ]));
     }
 
@@ -126,7 +130,8 @@ pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" CPU CORES ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+                .border_type(BorderType::Rounded)
+                .title(Span::styled("  CPU CORES ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -135,7 +140,7 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     let mem_data = app.metrics.get_memory_info();
 
     let usage_percent = (mem_data.used as f64 / mem_data.total as f64) * 100.0;
-    let mem_bar = create_unicode_bar(usage_percent, 40);
+    let mem_bar = create_unicode_bar(usage_percent, 60);
     let mem_color = get_usage_color(usage_percent);
     
     let swap_percent = if mem_data.swap_total > 0 {
@@ -143,39 +148,45 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
     } else {
         0.0
     };
-    let _swap_bar = create_unicode_bar(swap_percent, 40);
+    let _swap_bar = create_unicode_bar(swap_percent, 60);
     let swap_color = get_usage_color(swap_percent);
 
     let lines = vec![
         Line::from(""),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("RAM Total: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{:.1} GB", mem_data.total as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::White)),
+            Span::styled(" RAM Total:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.1} GB", mem_data.total as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::White).add_modifier(Modifier::BOLD)),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("RAM Used:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{:.2} GB", mem_data.used as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(mem_color)),
+            Span::styled(" RAM Used:   ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.2} GB", mem_data.used as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("RAM Avail: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("{:.2} GB", mem_data.available as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::Green)),
+            Span::styled(" RAM Avail:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("{:.2} GB", mem_data.available as f64 / (1024.0 * 1024.0 * 1024.0)), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
         ]),
+        Line::from(""),
         Line::from(""),
         Line::from(vec![
             Span::styled(mem_bar, Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("   {:.1}%", usage_percent), Style::default().fg(mem_color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
+        Line::from(""),
         Line::from(vec![
-            Span::styled("Swap: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled(" Swap:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{} / {:.2} GB",
                     format::format_bytes(mem_data.swap_used),
                     mem_data.swap_total as f64 / (1024.0 * 1024.0 * 1024.0)
                 ),
-                Style::default().fg(swap_color),
+                Style::default().fg(swap_color).add_modifier(Modifier::BOLD),
             ),
         ]),
+        Line::from(""),
         Line::from(""),
     ];
 
@@ -185,7 +196,8 @@ pub fn create_memory_widget(app: &App) -> Paragraph<'static> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" MEMORY ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+                .border_type(BorderType::Rounded)
+                .title(Span::styled(" 󰨅 MEMORY ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -196,6 +208,7 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
     let mut lines = vec![];
 
     // Add top padding for vertical centering
+    lines.push(Line::from(""));
     lines.push(Line::from(""));
     lines.push(Line::from(""));
 
@@ -209,37 +222,41 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
         for (idx, disk) in disk_list.iter().enumerate() {
             if idx > 0 {
                 lines.push(Line::from(""));
+                lines.push(Line::from(""));
             }
             
             let usage_percent = (disk.used as f64 / disk.total as f64) * 100.0;
-            let bar = create_unicode_bar(usage_percent, 35);
+            let bar = create_unicode_bar(usage_percent, 50);
             let disk_color = get_usage_color(usage_percent);
 
             lines.push(Line::from(vec![
                 Span::styled(
-                    format!("{}", disk.mount_point.clone()),
+                    format!("  {}", disk.mount_point.clone()),
                     Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
                 ),
             ]));
+            lines.push(Line::from(""));
 
             lines.push(Line::from(vec![
                 Span::styled(bar, Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
-                Span::styled(format!("  {:.1}%", usage_percent), Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
+                Span::styled(format!("   {:.1}%", usage_percent), Style::default().fg(disk_color).add_modifier(Modifier::BOLD)),
             ]));
+            lines.push(Line::from(""));
 
             lines.push(Line::from(vec![
                 Span::styled(
-                    format!("Used: {:.1} GB / Total: {:.1} GB",
+                    format!("  Used: {:.1} GB / Total: {:.1} GB",
                         disk.used as f64 / (1024.0 * 1024.0 * 1024.0),
                         disk.total as f64 / (1024.0 * 1024.0 * 1024.0)
                     ),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(Color::DarkGray).add_modifier(Modifier::BOLD),
                 ),
             ]));
         }
     }
 
     // Add bottom padding for vertical centering
+    lines.push(Line::from(""));
     lines.push(Line::from(""));
     lines.push(Line::from(""));
 
@@ -249,7 +266,8 @@ pub fn create_disk_widget(app: &App) -> Paragraph<'_> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
-                .title(Span::styled("  DISK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+                .border_type(BorderType::Rounded)
+                .title(Span::styled("  DISK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
@@ -259,35 +277,43 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
 
     let mut lines = vec![
         Line::from(""),
+        Line::from(""),
+        Line::from(""),
+        Line::from(""),
+        Line::from(""),
         Line::from(vec![
-            Span::styled(" RX Total: ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled("  RX Total:  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}", format::format_bytes(net_data.received)),
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
             ),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled(" RX Rate:  ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled("  RX Rate:   ", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}/s", format::format_bytes(net_data.rx_rate)),
                 Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
             ),
         ]),
         Line::from(""),
+        Line::from(""),
         Line::from(vec![
-            Span::styled(" TX Total: ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("  TX Total:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}", format::format_bytes(net_data.sent)),
                 Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
             ),
         ]),
+        Line::from(""),
         Line::from(vec![
-            Span::styled(" TX Rate:  ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("  TX Rate:   ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{}/s", format::format_bytes(net_data.tx_rate)),
                 Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
             ),
         ]),
+        Line::from(""),
         Line::from(""),
     ];
 
@@ -295,10 +321,8 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
     if let Some(temp) = app.metrics.get_temperature() {
         lines.push(Line::from(""));
         lines.push(Line::from(""));
-        lines.push(Line::from(""));
-        lines.push(Line::from(""));
         lines.push(Line::from(vec![
-            Span::styled(" TEMP  ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+            Span::styled("  TEMP:  ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
             Span::styled(
                 format!("{:.1}°C", temp),
                 Style::default().fg(get_temp_color(temp as f64)).add_modifier(Modifier::BOLD),
@@ -319,13 +343,14 @@ pub fn create_network_widget(app: &mut App) -> Paragraph<'_> {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
-                .title(Span::styled(" NETWORK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
+                .border_type(BorderType::Rounded)
+                .title(Span::styled("   NETWORK ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)))
         )
 }
 
 /// Create search input widget
 pub fn create_search_input(app: &App) -> Paragraph<'_> {
-    let cursor = if app.input_mode {
+    let cursor = if app.input_mode && app.cursor_visible {
         "█" // Blinking cursor
     } else {
         ""
@@ -350,6 +375,7 @@ pub fn create_search_input(app: &App) -> Paragraph<'_> {
         Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+            .border_type(BorderType::Rounded)
             .title(Span::styled(
                 if app.input_mode { " SEARCH MODE " } else { " SEARCH " },
                 Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)
@@ -392,7 +418,7 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
             let title = if cmd.dangerous {
                 format!("    [DANGER] {}", cmd.command)
             } else {
-                format!("     {}", cmd.command)
+                format!("   ✓  {}", cmd.command)
             };
 
             // Create a full-width separator line (elongated)
@@ -425,6 +451,7 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
             Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .border_type(BorderType::Rounded)
                 .title(Span::styled(
                     format!(" COMMANDS ({}/{}) ", app.selected_index + 1, results.len()),
                     Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)
@@ -469,6 +496,7 @@ pub fn create_settings_widget() -> Paragraph<'static> {
         Block::default()
             .borders(Borders::ALL)
             .title_alignment(Alignment::Center)
+            .border_type(BorderType::Rounded)
             .title(" Settings ")
     )
 }

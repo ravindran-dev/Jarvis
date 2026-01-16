@@ -89,6 +89,10 @@ pub struct App {
     pub input_mode: bool,
     /// Selected index in Settings
     pub settings_selected: usize,
+    /// Cursor visibility for blinking effect
+    pub cursor_visible: bool,
+    /// Last cursor blink toggle time
+    last_cursor_blink: Instant,
 }
 
 impl App {
@@ -122,6 +126,8 @@ impl App {
             input_mode: false,
             config,
             settings_selected: 0,
+            cursor_visible: true,
+            last_cursor_blink: Instant::now(),
         };
 
         // Apply theme from config
@@ -149,6 +155,12 @@ impl App {
             if self.last_update.elapsed() >= self.update_interval {
                 self.update()?;
                 self.last_update = Instant::now();
+            }
+
+            // Toggle cursor blink every 530ms
+            if self.last_cursor_blink.elapsed() >= Duration::from_millis(530) {
+                self.cursor_visible = !self.cursor_visible;
+                self.last_cursor_blink = Instant::now();
             }
 
             // Render UI
