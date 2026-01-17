@@ -164,6 +164,7 @@ fn render_commands_screen(f: &mut Frame, app: &App, area: Rect) {
         .constraints([
             Constraint::Length(3),
             Constraint::Min(0),
+            Constraint::Length(10),
         ])
         .split(area);
 
@@ -172,6 +173,9 @@ fn render_commands_screen(f: &mut Frame, app: &App, area: Rect) {
 
     let (commands_widget, mut list_state) = widgets::create_commands_list(app);
     f.render_stateful_widget(commands_widget, chunks[1], &mut list_state);
+
+    let output_widget = widgets::create_output_pane(app);
+    f.render_widget(output_widget, chunks[2]);
 }
 
 /// Render the settings screen

@@ -455,6 +455,32 @@ pub fn create_commands_list(app: &App) -> (List<'_>, ListState) {
     (list, state)
 }
 
+/// Create command output pane widget
+pub fn create_output_pane(app: &App) -> Paragraph<'_> {
+    let mut lines: Vec<Line> = Vec::new();
+
+    if app.command_output.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "No command output yet. Press Enter to run.",
+            Style::default().fg(Color::DarkGray),
+        )));
+    } else {
+        for l in app.command_output.iter() {
+            lines.push(Line::from(l.as_str()));
+        }
+    }
+
+    Paragraph::new(lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+                .border_type(BorderType::Rounded)
+                .title(Span::styled(" OUTPUT ", Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))),
+        )
+        .style(Style::default().fg(Color::White))
+}
+
 /// Settings widget
 #[allow(dead_code)]
 pub fn create_settings_widget() -> Paragraph<'static> {

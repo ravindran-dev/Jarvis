@@ -1,7 +1,9 @@
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::info;
 use ratatui::{backend::Backend, Terminal};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
 use crate::commands::CommandIndex;
@@ -93,9 +95,19 @@ pub struct App {
     pub cursor_visible: bool,
     /// Last cursor blink toggle time
     last_cursor_blink: Instant,
+    /// Captured output from last executed command
+    pub command_output: Vec<String>,
 }
 
 impl App {
+    fn is_interactive_command(cmd: &str) -> bool {
+        let candidates = [
+            "htop", "top", "less", "more", "vim", "nvim", "nano",
+            "man", "ssh", "watch", "tail -f", "tmux", "screen",
+        ];
+        let lc = cmd.to_lowercase();
+        candidates.iter().any(|c| lc.contains(c))
+    }
     /// Create a new App instance
     pub fn new() -> Result<Self> {
         info!("Initializing Jarvis application");
@@ -128,6 +140,7 @@ impl App {
             settings_selected: 0,
             cursor_visible: true,
             last_cursor_blink: Instant::now(),
+            command_output: Vec::new(),
         };
 
         if app.config.theme_index < app.themes.len() {
@@ -401,7 +414,83 @@ impl App {
             }
             Screen::Commands => {
                 if let Some(cmd) = self.commands.get_selected_command(self.selected_index) {
-                    info!("Would execute command: {}", cmd.command);
+                    info!("Executing command: {}", cmd.command);
+                    self.command_output.clear();
+                    self.command_output.push(format!("$ {}", cmd.command));
+
+                    if Self::is_interactive_command(&cmd.command) {
+                        self.command_output.push(String::from("[interactive] launching...")); 
+                        let _ = disable_raw_mode();
+                        let status_res = if cfg!(target_os = "windows") {
+                            Command::new("cmd").args(["/C", &cmd.command]).status()
+                        } else {
+                            Command::new("sh").args(["-c", &cmd.command]).status()
+                        };
+                        let _ = enable_raw_mode();
+
+                        match status_res {
+                            Ok(status) => {
+                                let status_str = if status.success() {
+                                    "exit: 0".to_string()
+                                } else {
+                                    match status.code() { Some(c) => format!("exit: {}", c), None => "terminated".to_string() }
+                                };
+                                self.command_output.push(String::from(""));
+                                self.command_output.push(format!("[{}]", status_str));
+                            }
+                            Err(e) => {
+                                self.command_output.push(String::from(""));
+                                self.command_output.push(String::from("[error] Failed to launch interactive command:"));
+                                self.command_output.push(e.to_string());
+                            }
+                        }
+                    } else {
+                        let output_result = if cfg!(target_os = "windows") {
+                            Command::new("cmd").args(["/C", &cmd.command]).output()
+                        } else {
+                            Command::new("sh").args(["-c", &cmd.command]).output()
+                        };
+
+                        match output_result {
+                            Ok(out) => {
+                                let stdout = String::from_utf8_lossy(&out.stdout);
+                                let stderr = String::from_utf8_lossy(&out.stderr);
+
+                                if !stdout.is_empty() {
+                                    self.command_output.push(String::from(""));
+                                    self.command_output.push(String::from("[stdout]"));
+                                    for line in stdout.lines() {
+                                        self.command_output.push(line.to_string());
+                                    }
+                                }
+
+                                if !stderr.is_empty() {
+                                    self.command_output.push(String::from(""));
+                                    self.command_output.push(String::from("[stderr]"));
+                                    for line in stderr.lines() {
+                                        self.command_output.push(line.to_string());
+                                    }
+                                }
+
+                                let status_str: String = if out.status.success() {
+                                    "exit: 0".to_string()
+                                } else {
+                                    match out.status.code() {
+                                        Some(c) => format!("exit: {}", c),
+                                        None => "terminated".to_string(),
+                                    }
+                                };
+                                self.command_output.push(String::from(""));
+                                self.command_output.push(format!("[{}]", status_str));
+                            }
+                            Err(e) => {
+                                self.command_output.push(String::from(""));
+                                self.command_output.push(String::from("[error] Failed to execute command:"));
+                                self.command_output.push(e.to_string());
+                                info!("Failed to execute command: {}", e);
+                            }
+                        }
+                    }
                 }
             }
             _ => {}
