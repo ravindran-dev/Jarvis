@@ -64,6 +64,10 @@ impl StorageAnalyzer {
         self.results.lock().unwrap().len()
     }
 
+    pub fn get_selected_item(&self, index: usize) -> Option<DirectoryItem> {
+        self.results.lock().unwrap().get(index).cloned()
+    }
+
    
     pub fn start_scan(&self) -> Result<()> {
         if self.is_scanning() {

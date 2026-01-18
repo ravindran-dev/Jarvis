@@ -100,6 +100,50 @@ pub struct App {
 }
 
 impl App {
+    fn open_directory_in_file_manager(path: &str) -> Result<()> {
+        use std::process::Stdio;
+        
+        let path_clean = path.trim();
+        
+        if cfg!(target_os = "windows") {
+            Command::new("explorer")
+                .arg(path_clean)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()?;
+        } else if cfg!(target_os = "macos") {
+            Command::new("open")
+                .arg(path_clean)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()?;
+        } else {
+            let managers = ["nautilus", "dolphin", "nemo", "thunar", "pcmanfm"];
+            let mut opened = false;
+            for mgr in &managers {
+                if Command::new(mgr)
+                    .arg(path_clean)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()
+                    .is_ok()
+                {
+                    opened = true;
+                    break;
+                }
+            }
+            if !opened {
+                info!("No file manager found; falling back to xdg-open");
+                Command::new("xdg-open")
+                    .arg(path_clean)
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn()?;
+            }
+        }
+        Ok(())
+    }
+
     fn is_interactive_command(cmd: &str) -> bool {
         let candidates = [
             "htop", "top", "less", "more", "vim", "nvim", "nano",
@@ -411,6 +455,12 @@ impl App {
         match self.current_screen {
             Screen::Storage => {
                 info!("Storage item selected: {}", self.selected_index);
+                if let Some(item) = self.storage.get_selected_item(self.selected_index) {
+                    info!("Opening directory: {}", item.path);
+                    if let Err(e) = Self::open_directory_in_file_manager(&item.path) {
+                        info!("Failed to open file manager: {}", e);
+                    }
+                }
             }
             Screen::Commands => {
                 if let Some(cmd) = self.commands.get_selected_command(self.selected_index) {
