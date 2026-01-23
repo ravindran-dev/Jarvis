@@ -3,6 +3,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use log::info;
 use ratatui::{backend::Backend, Terminal};
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
@@ -20,6 +21,7 @@ pub enum Screen {
     Metrics,
     Commands,
     Settings,
+    Help,
 }
 
 impl Screen {
@@ -30,6 +32,7 @@ impl Screen {
             Screen::Metrics => Screen::Commands,
             Screen::Commands => Screen::Settings,
             Screen::Settings => Screen::Storage,
+            Screen::Help => Screen::Storage,
         }
     }
 
@@ -40,6 +43,7 @@ impl Screen {
             Screen::Metrics => Screen::Storage,
             Screen::Commands => Screen::Metrics,
             Screen::Settings => Screen::Commands,
+            Screen::Help => Screen::Settings,
         }
     }
 
@@ -51,6 +55,7 @@ impl Screen {
             Screen::Metrics => "Metrics",
             Screen::Commands => "Commands",
             Screen::Settings => "Settings",
+            Screen::Help => "Help",
         }
     }
 }
@@ -246,7 +251,12 @@ impl App {
         }
 
         if key.code == KeyCode::Char('q') && !self.input_mode {
-            self.should_quit = true;
+            if self.current_screen == Screen::Help {
+                self.current_screen = Screen::Storage;
+                self.reset_selection();
+            } else {
+                self.should_quit = true;
+            }
             return Ok(());
         }
 
@@ -394,6 +404,19 @@ impl App {
             KeyCode::Enter => {
                 self.handle_enter()?;
             }
+            KeyCode::Backspace => {
+                if self.current_screen == Screen::Storage {
+                    if let Some(current_path) = self.storage.get_current_path() {
+                        if let Some(parent) = current_path.parent() {
+                            self.storage.set_current_path(Some(parent.to_path_buf()));
+                            self.reset_selection();
+                        } else {
+                            self.storage.set_current_path(None);
+                            self.reset_selection();
+                        }
+                    }
+                }
+            }
             KeyCode::Char('/') => {
                 if self.current_screen == Screen::Commands {
                     self.input_mode = true;
@@ -404,6 +427,15 @@ impl App {
             }
             KeyCode::Char('t') | KeyCode::Char('T') => {
                 self.next_theme();
+            }
+            KeyCode::Char('?') => {
+                if self.current_screen == Screen::Help {
+                    self.current_screen = Screen::Storage;
+                    self.reset_selection();
+                } else {
+                    self.current_screen = Screen::Help;
+                    self.reset_selection();
+                }
             }
 
             _ => {}
@@ -444,7 +476,13 @@ impl App {
     /// Get maximum number of items in current view
     fn get_max_items(&self) -> usize {
         match self.current_screen {
-            Screen::Storage => self.storage.get_results_count(),
+            Screen::Storage => {
+                if let Some(current_path) = self.storage.get_current_path() {
+                    self.storage.get_subdirectories(&current_path.to_string_lossy().to_string()).len()
+                } else {
+                    self.storage.get_results_count()
+                }
+            }
             Screen::Commands => self.commands.get_results_count(),
             _ => 0,
         }
@@ -455,10 +493,25 @@ impl App {
         match self.current_screen {
             Screen::Storage => {
                 info!("Storage item selected: {}", self.selected_index);
-                if let Some(item) = self.storage.get_selected_item(self.selected_index) {
-                    info!("Opening directory: {}", item.path);
-                    if let Err(e) = Self::open_directory_in_file_manager(&item.path) {
-                        info!("Failed to open file manager: {}", e);
+                
+                let items = if let Some(current_path) = self.storage.get_current_path() {
+                    self.storage.get_subdirectories(&current_path.to_string_lossy().to_string())
+                } else {
+                    self.storage.get_results()
+                };
+                
+                if let Some(item) = items.get(self.selected_index) {
+                    let subdirs = self.storage.get_subdirectories(&item.path);
+                    
+                    if subdirs.is_empty() {
+                        info!("No subdirectories; opening directory: {}", item.path);
+                        if let Err(e) = Self::open_directory_in_file_manager(&item.path) {
+                            info!("Failed to open file manager: {}", e);
+                        }
+                    } else {
+                        info!("Drilling down into: {}", item.path);
+                        self.storage.set_current_path(Some(PathBuf::from(&item.path)));
+                        self.reset_selection();
                     }
                 }
             }

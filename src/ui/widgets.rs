@@ -33,13 +33,46 @@ pub fn create_storage_status(app: &App) -> Paragraph<'static> {
         .style(Style::default().fg(Color::White))
 }
 
+/// Create breadcrumb widget for storage navigation
+pub fn create_breadcrumb(app: &App) -> Paragraph<'_> {
+    let breadcrumb_text = if let Some(current_path) = app.storage.get_current_path() {
+        let path_str = current_path.to_string_lossy().to_string();
+        format!(" 📁 {} | Press Backspace to go back", path_str)
+    } else {
+        " 📁 Storage Root | Select a folder to drill down".to_string()
+    };
+
+    Paragraph::new(Line::from(Span::styled(
+        breadcrumb_text,
+        Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
+    )))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(app.theme.primary))
+            .border_type(BorderType::Rounded),
+    )
+}
+
 /// Create storage table widget
 pub fn create_storage_table(app: &App) -> Table<'static> {
-    let results = app.storage.get_results();
+    let (results, title) = if let Some(current_path) = app.storage.get_current_path() {
+        let subdirs = app.storage.get_subdirectories(&current_path.to_string_lossy().to_string());
+        let path_display = current_path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("Directory");
+        (subdirs, format!(" Subdirectories of {} ", path_display))
+    } else {
+        (app.storage.get_results(), " Directory Sizes (Largest First) ".to_string())
+    };
 
     let rows: Vec<Row> = if results.is_empty() {
         vec![Row::new(vec![
-            Cell::from("No data available - scanning in progress or press 'r' to scan"),
+            Cell::from(if app.storage.get_current_path().is_some() {
+                "No subdirectories found. Press Backspace to go back."
+            } else {
+                "No data available - scanning in progress or press 'r' to scan"
+            }),
             Cell::from(""),
             Cell::from(""),
         ])]
@@ -79,7 +112,7 @@ pub fn create_storage_table(app: &App) -> Table<'static> {
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary))
                 .border_type(BorderType::Rounded)
-                .title(" Directory Sizes (Largest First) "),
+                .title(title),
         )
         .header(
             Row::new(vec!["Path", "Size", "Files"])

@@ -1,5 +1,6 @@
 use anyhow::Result;
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -23,6 +24,11 @@ pub struct StorageAnalyzer {
     scan_paths: Vec<PathBuf>,
 
     min_threshold_bytes: u64,
+
+    current_path: Arc<Mutex<Option<PathBuf>>>,
+
+    // Cache subdirectory listings and sizes per parent path to avoid recomputation
+    subdir_cache: Arc<Mutex<HashMap<String, Vec<DirectoryItem>>>>,
 }
 
 impl StorageAnalyzer {
@@ -43,6 +49,8 @@ impl StorageAnalyzer {
             scanning: Arc::new(Mutex::new(false)),
             scan_paths,
             min_threshold_bytes: 1024 * 1024,
+            current_path: Arc::new(Mutex::new(None)),
+            subdir_cache: Arc::new(Mutex::new(HashMap::new())),
         };
 
         analyzer.start_scan()?;
@@ -64,6 +72,7 @@ impl StorageAnalyzer {
         self.results.lock().unwrap().len()
     }
 
+    #[allow(dead_code)]
     pub fn get_selected_item(&self, index: usize) -> Option<DirectoryItem> {
         self.results.lock().unwrap().get(index).cloned()
     }
@@ -164,5 +173,79 @@ impl StorageAnalyzer {
   
     pub fn set_min_threshold_bytes(&mut self, bytes: u64) {
         self.min_threshold_bytes = bytes;
+    }
+
+    pub fn get_current_path(&self) -> Option<PathBuf> {
+        self.current_path.lock().unwrap().clone()
+    }
+
+    pub fn set_current_path(&mut self, path: Option<PathBuf>) {
+        *self.current_path.lock().unwrap() = path;
+    }
+
+    pub fn get_subdirectories(&self, parent_path: &str) -> Vec<DirectoryItem> {
+        let path = Path::new(parent_path);
+        if !path.is_dir() {
+            return Vec::new();
+        }
+
+        // If we have cached results, return them sorted by size
+        if let Some(cached) = self.subdir_cache.lock().unwrap().get(parent_path).cloned() {
+            let mut cached_sorted = cached.clone();
+            cached_sorted.sort_by(|a, b| b.size.cmp(&a.size));
+            return cached_sorted;
+        }
+
+        // Quick listing without deep size computation (fast path)
+        let mut initial: Vec<DirectoryItem> = Vec::new();
+        let mut child_paths: Vec<PathBuf> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let child = entry.path();
+                if child.is_dir() {
+                    child_paths.push(child.clone());
+                    if let Ok(p) = child.canonicalize() {
+                        initial.push(DirectoryItem {
+                            path: p.to_string_lossy().to_string(),
+                            size: 0,
+                            file_count: 0,
+                        });
+                    }
+                }
+            }
+        }
+
+        // Insert the initial placeholder list into cache so subsequent renders use it
+        {
+            let mut cache = self.subdir_cache.lock().unwrap();
+            cache.insert(parent_path.to_string(), initial.clone());
+        }
+
+        // Spawn background computation to calculate sizes and update cache
+        let cache = Arc::clone(&self.subdir_cache);
+        let parent = parent_path.to_string();
+        thread::spawn(move || {
+            let computed: Vec<DirectoryItem> = child_paths
+                .par_iter()
+                .filter_map(|child_path| {
+                    let (size, file_count) = Self::calculate_directory_size(child_path);
+                    if let Ok(p) = child_path.canonicalize() {
+                        Some(DirectoryItem {
+                            path: p.to_string_lossy().to_string(),
+                            size,
+                            file_count,
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            let mut cache_lock = cache.lock().unwrap();
+            cache_lock.insert(parent, computed);
+        });
+
+        // Return the initial fast list (sizes 0); UI will refresh when cache fills
+        initial
     }
 }

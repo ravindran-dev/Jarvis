@@ -32,6 +32,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
         Screen::Metrics => render_metrics_screen(f, app, chunks[2]),
         Screen::Commands => render_commands_screen(f, app, chunks[2]),
         Screen::Settings => render_settings_screen(f, app, chunks[2]),
+        Screen::Help => render_help_screen(f, app, chunks[2]),
     }
 
     render_footer(f, app, chunks[3]);
@@ -64,8 +65,9 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         Screen::Metrics => 1,
         Screen::Commands => 2,
         Screen::Settings => 3,
-    };
 
+        Screen::Help => 0, // Help doesn't have its own tab, default to Storage
+    };
     let tabs = Tabs::new(titles)
         .block(Block::default()
             .borders(Borders::ALL)
@@ -89,6 +91,7 @@ fn render_storage_screen(f: &mut Frame, app: &App, area: Rect) {
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3),
+            Constraint::Length(2),
             Constraint::Min(0),
         ])
         .split(area);
@@ -96,8 +99,11 @@ fn render_storage_screen(f: &mut Frame, app: &App, area: Rect) {
     let status = widgets::create_storage_status(app);
     f.render_widget(status, chunks[0]);
 
+    let breadcrumb = widgets::create_breadcrumb(app);
+    f.render_widget(breadcrumb, chunks[1]);
+
     let storage_table = widgets::create_storage_table(app);
-    f.render_widget(storage_table, chunks[1]);
+    f.render_widget(storage_table, chunks[2]);
 }
 
 /// Render the system metrics screen
@@ -246,7 +252,11 @@ fn render_settings_screen(f: &mut Frame, app: &App, area: Rect) {
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.current_screen {
         Screen::Storage => {
-            "h l: Switch | j k: Navigate | r: Rescan | q: Quit"
+            if app.storage.get_current_path().is_some() {
+                "j k: Navigate | Enter: Drill Down/Open | Backspace: Go Back | r: Rescan | q: Quit"
+            } else {
+                "h l: Switch | j k: Navigate | Enter: Drill Down | r: Rescan | q: Quit"
+            }
         }
         Screen::Metrics => {
             "h l: Switch | r: Refresh | q: Quit"
@@ -256,6 +266,9 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         }
         Screen::Settings => {
             "Tab: Switch | j k: Navigate | ←→ / -+: Adjust | t: Toggle Theme | q: Quit"
+        }
+        Screen::Help => {
+            "? / q: Close Help | q: Quit"
         }
     };
 
@@ -269,4 +282,75 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);
+}
+
+/// Render the help screen with all keymaps
+fn render_help_screen(f: &mut Frame, app: &App, area: Rect) {
+    let mut lines: Vec<Line> = Vec::new();
+
+    lines.push(Line::from(Span::styled(
+        " KEYBOARD KEYMAPS - Press ? or q to Close",
+        Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from(""));
+
+    lines.push(Line::from(Span::styled(
+        "Global Keys:",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from("  Tab / Shift+Tab    Switch between Storage, Metrics, Commands, Settings"));
+    lines.push(Line::from("  h / l              Navigate left / right between screens"));
+    lines.push(Line::from("  t / T              Cycle through available themes"));
+    lines.push(Line::from("  Ctrl+H / Ctrl+L    Previous / Next theme"));
+    lines.push(Line::from("  ?                  Show this help screen"));
+    lines.push(Line::from("  q                  Quit application"));
+    lines.push(Line::from("  Ctrl+C             Force quit"));
+    lines.push(Line::from(""));
+
+    lines.push(Line::from(Span::styled(
+        "Storage Screen:",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from("  j / k               Navigate up / down in directory list"));
+    lines.push(Line::from("  Enter               Drill into subdirectories or open folder"));
+    lines.push(Line::from("  Backspace           Go back to parent directory"));
+    lines.push(Line::from("  r                   Rescan storage"));
+    lines.push(Line::from(""));
+
+    lines.push(Line::from(Span::styled(
+        "Metrics Screen:",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from("  r                   Refresh metrics"));
+    lines.push(Line::from(""));
+
+    lines.push(Line::from(Span::styled(
+        "Commands Screen:",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from("  j / k               Navigate up / down in command list"));
+    lines.push(Line::from("  /                   Activate search mode"));
+    lines.push(Line::from("  Enter               Execute selected command"));
+    lines.push(Line::from(""));
+
+    lines.push(Line::from(Span::styled(
+        "Settings Screen:",
+        Style::default().fg(app.theme.warning).add_modifier(Modifier::BOLD),
+    )));
+    lines.push(Line::from("  j / k               Navigate down / up through settings"));
+    lines.push(Line::from("  ← → / - +           Adjust selected setting"));
+    lines.push(Line::from(""));
+
+    let paragraph = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Help ")
+                .style(Style::default().fg(app.theme.primary))
+                .border_type(BorderType::Rounded),
+        )
+        .alignment(Alignment::Left);
+
+    f.render_widget(paragraph, area);
+
 }
