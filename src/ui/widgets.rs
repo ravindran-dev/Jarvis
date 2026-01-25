@@ -55,7 +55,7 @@ pub fn create_breadcrumb(app: &App) -> Paragraph<'_> {
 }
 
 /// Create storage table widget
-pub fn create_storage_table(app: &App) -> Table<'static> {
+pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static> {
     let (results, title) = if let Some(current_path) = app.storage.get_current_path() {
         let subdirs = app.storage.get_subdirectories(&current_path.to_string_lossy().to_string());
         let path_display = current_path.file_name()
@@ -77,9 +77,14 @@ pub fn create_storage_table(app: &App) -> Table<'static> {
             Cell::from(""),
         ])]
     } else {
+        // Apply scroll offset to visible rows using actual available height
+        let visible_start = app.scroll_offset;
+        let visible_end = (app.scroll_offset + available_height).min(results.len());
+        
         results
         .iter()
         .enumerate()
+        .filter(|(idx, _)| *idx >= visible_start && *idx < visible_end)
         .map(|(idx, item)| {
             let style = if idx == app.selected_index {
                 Style::default()

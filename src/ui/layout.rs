@@ -102,7 +102,8 @@ fn render_storage_screen(f: &mut Frame, app: &App, area: Rect) {
     let breadcrumb = widgets::create_breadcrumb(app);
     f.render_widget(breadcrumb, chunks[1]);
 
-    let storage_table = widgets::create_storage_table(app);
+    let available_height = chunks[2].height.saturating_sub(3) as usize; // Subtract border/header
+    let storage_table = widgets::create_storage_table(app, available_height);
     f.render_widget(storage_table, chunks[2]);
 }
 
