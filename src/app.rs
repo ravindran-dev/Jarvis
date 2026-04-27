@@ -102,6 +102,10 @@ pub struct App {
     last_cursor_blink: Instant,
     /// Captured output from last executed command
     pub command_output: Vec<String>,
+    /// Storage search buffer for filtering directories
+    pub storage_search_buffer: String,
+    /// Whether storage search feature is enabled
+    pub storage_search_enabled: bool,
 }
 
 impl App {
@@ -185,6 +189,8 @@ impl App {
             scroll_offset: 0,
             input_buffer: String::new(),
             input_mode: false,
+            storage_search_buffer: String::new(),
+            storage_search_enabled: true,
             config,
             settings_selected: 0,
             cursor_visible: true,
@@ -267,6 +273,10 @@ impl App {
                     if self.current_screen == Screen::Commands {
                         self.commands.search(&self.input_buffer)?;
                         self.selected_index = 0;
+                    } else if self.current_screen == Screen::Storage {
+                        self.storage_search_buffer = self.input_buffer.clone();
+                        self.selected_index = 0;
+                        self.scroll_offset = 0;
                     }
                 }
                 KeyCode::Backspace => {
@@ -274,16 +284,29 @@ impl App {
                     if self.current_screen == Screen::Commands {
                         self.commands.search(&self.input_buffer)?;
                         self.selected_index = 0;
+                    } else if self.current_screen == Screen::Storage {
+                        self.storage_search_buffer = self.input_buffer.clone();
+                        self.selected_index = 0;
+                        self.scroll_offset = 0;
                     }
                 }
                 KeyCode::Enter => {
-                    self.handle_input_submit()?;
-                    self.input_mode = false;
-                    self.input_buffer.clear();
+                    if self.current_screen == Screen::Storage {
+                        self.input_mode = false;
+                    } else {
+                        self.handle_input_submit()?;
+                        self.input_mode = false;
+                        self.input_buffer.clear();
+                    }
                 }
                 KeyCode::Esc => {
                     self.input_mode = false;
                     self.input_buffer.clear();
+                    if self.current_screen == Screen::Storage {
+                        self.storage_search_buffer.clear();
+                        self.selected_index = 0;
+                        self.scroll_offset = 0;
+                    }
                 }
                 _ => {}
             }
@@ -429,7 +452,14 @@ impl App {
                 self.next_theme();
             }
             KeyCode::Char('?') => {
-                if self.current_screen == Screen::Help {
+                if self.current_screen == Screen::Storage {
+                    self.storage_search_enabled = !self.storage_search_enabled;
+                    if !self.storage_search_enabled {
+                        self.storage_search_buffer.clear();
+                        self.selected_index = 0;
+                        self.scroll_offset = 0;
+                    }
+                } else if self.current_screen == Screen::Help {
                     self.current_screen = Screen::Storage;
                     self.reset_selection();
                 } else {
@@ -477,10 +507,21 @@ impl App {
     fn get_max_items(&self) -> usize {
         match self.current_screen {
             Screen::Storage => {
-                if let Some(current_path) = self.storage.get_current_path() {
-                    self.storage.get_subdirectories(&current_path.to_string_lossy().to_string()).len()
+                let items = if let Some(current_path) = self.storage.get_current_path() {
+                    self.storage.get_subdirectories(&current_path.to_string_lossy().to_string())
                 } else {
-                    self.storage.get_results_count()
+                    self.storage.get_results()
+                };
+                
+                // Filter by search buffer if enabled
+                if self.storage_search_enabled && !self.storage_search_buffer.is_empty() {
+                    items.into_iter()
+                        .filter(|item| {
+                            item.path.to_lowercase().contains(&self.storage_search_buffer.to_lowercase())
+                        })
+                        .count()
+                } else {
+                    items.len()
                 }
             }
             Screen::Commands => self.commands.get_results_count(),
@@ -500,7 +541,18 @@ impl App {
                     self.storage.get_results()
                 };
                 
-                if let Some(item) = items.get(self.selected_index) {
+                // Filter by search buffer if enabled
+                let filtered_items: Vec<_> = if self.storage_search_enabled && !self.storage_search_buffer.is_empty() {
+                    items.into_iter()
+                        .filter(|item| {
+                            item.path.to_lowercase().contains(&self.storage_search_buffer.to_lowercase())
+                        })
+                        .collect()
+                } else {
+                    items
+                };
+                
+                if let Some(item) = filtered_items.get(self.selected_index) {
                     let subdirs = self.storage.get_subdirectories(&item.path);
                     
                     if subdirs.is_empty() {
@@ -511,6 +563,7 @@ impl App {
                     } else {
                         info!("Drilling down into: {}", item.path);
                         self.storage.set_current_path(Some(PathBuf::from(&item.path)));
+                        self.storage_search_buffer.clear();
                         self.reset_selection();
                     }
                 }

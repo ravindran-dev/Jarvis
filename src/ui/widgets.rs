@@ -35,22 +35,36 @@ pub fn create_storage_status(app: &App) -> Paragraph<'static> {
 
 /// Create breadcrumb widget for storage navigation
 pub fn create_breadcrumb(app: &App) -> Paragraph<'_> {
-    let breadcrumb_text = if let Some(current_path) = app.storage.get_current_path() {
-        let path_str = current_path.to_string_lossy().to_string();
-        format!(" 📁 {} | Press Backspace to go back", path_str)
+    let cursor = if app.storage_search_enabled && app.cursor_visible { "█" } else { "" };
+    
+    let text = if !app.storage_search_enabled {
+        " SEARCH: Disabled (Press ? to enable)".to_string()
+    } else if !app.storage_search_buffer.is_empty() {
+        format!(" SEARCH: {}{}", app.storage_search_buffer, cursor)
     } else {
-        " 📁 Storage Root | Select a folder to drill down".to_string()
+        format!(" SEARCH: {}{} (Start typing to filter)", app.storage_search_buffer, cursor)
+    };
+    
+    let text_color = if !app.storage_search_enabled {
+        Color::DarkGray
+    } else if !app.storage_search_buffer.is_empty() {
+        Color::Yellow
+    } else {
+        Color::DarkGray
     };
 
-    Paragraph::new(Line::from(Span::styled(
-        breadcrumb_text,
-        Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD),
-    )))
+    Paragraph::new(Line::from(vec![
+        Span::styled(text, Style::default().fg(text_color).add_modifier(Modifier::BOLD))
+    ]))
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(app.theme.primary))
-            .border_type(BorderType::Rounded),
+            .border_style(Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD))
+            .border_type(BorderType::Rounded)
+            .title(Span::styled(
+                if app.storage_search_enabled { " SEARCH MODE " } else { " SEARCH " },
+                Style::default().fg(app.theme.primary).add_modifier(Modifier::BOLD)
+            )),
     )
 }
 
@@ -66,12 +80,25 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
         (app.storage.get_results(), " Directory Sizes (Largest First) ".to_string())
     };
 
-    let rows: Vec<Row> = if results.is_empty() {
+    // Filter results based on search buffer
+    let filtered_results: Vec<_> = if app.storage_search_enabled && !app.storage_search_buffer.is_empty() {
+        results.into_iter()
+            .filter(|item| {
+                item.path.to_lowercase().contains(&app.storage_search_buffer.to_lowercase())
+            })
+            .collect()
+    } else {
+        results
+    };
+
+    let rows: Vec<Row> = if filtered_results.is_empty() {
         vec![Row::new(vec![
-            Cell::from(if app.storage.get_current_path().is_some() {
-                "No subdirectories found. Press Backspace to go back."
+            Cell::from(if !app.storage_search_buffer.is_empty() {
+                format!("No matches for '{}'", app.storage_search_buffer)
+            } else if app.storage.get_current_path().is_some() {
+                "No subdirectories found. Press Backspace to go back.".to_string()
             } else {
-                "No data available - scanning in progress or press 'r' to scan"
+                "No data available - scanning in progress or press 'r' to scan".to_string()
             }),
             Cell::from(""),
             Cell::from(""),
@@ -79,9 +106,9 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
     } else {
         // Apply scroll offset to visible rows using actual available height
         let visible_start = app.scroll_offset;
-        let visible_end = (app.scroll_offset + available_height).min(results.len());
+        let visible_end = (app.scroll_offset + available_height).min(filtered_results.len());
         
-        results
+        filtered_results
         .iter()
         .enumerate()
         .filter(|(idx, _)| *idx >= visible_start && *idx < visible_end)

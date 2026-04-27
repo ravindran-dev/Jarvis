@@ -254,9 +254,9 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
     let help_text = match app.current_screen {
         Screen::Storage => {
             if app.storage.get_current_path().is_some() {
-                "j k: Navigate | Enter: Drill Down/Open | Backspace: Go Back | r: Rescan | q: Quit"
+                "Type: Filter | Backspace: Go Back | ?: Toggle Search | Enter: Drill Down/Open | r: Rescan | q: Quit"
             } else {
-                "h l: Switch | j k: Navigate | Enter: Drill Down | r: Rescan | q: Quit"
+                "h l: Switch | Type: Filter | ?: Toggle Search | Enter: Drill Down | r: Rescan | q: Quit"
             }
         }
         Screen::Metrics => {
