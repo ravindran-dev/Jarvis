@@ -1,70 +1,13 @@
-[package]
-name = "jarvis"
-version = "0.1.0"
-edition = "2021"
-authors = ["Ravindran S <ravindrans.dev@gmail.com>"]
-description = "Jarvis - A powerful Linux system monitoring dashboard"
-license = "MIT"
-readme = "README.md"
-
-[dependencies]
-# Terminal UI framework
-ratatui = "0.27"
-crossterm = "0.27"
-
-# System information
-sysinfo = "0.30"
-procfs = "0.16"
-
-# File system operations
-walkdir = "2.4"
-
-# Parallel processing
-rayon = "1.8"
-
-# Async runtime
-tokio = { version = "1.35", features = ["full"] }
-tokio-stream = "0.1"
-
-# Serialization
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# Error handling
-anyhow = "1.0"
-thiserror = "1.0"
-
-# Logging
-log = "0.4"
-env_logger = "0.11"
-
-# Date/time
-chrono = "0.4"
-
-# Fuzzy matching for command search
-fuzzy-matcher = "0.3"
-
-# Configuration
-dirs = "5.0"
-
-# Plugin loading
-libloading = "0.8"
-
-# Bounded threadpool
-threadpool = "1.8"
-
-[dev-dependencies]
-tempfile = "3.8"
-
-[features]
-default = []
+[workspace]
+members = [
+    "jarvis",
+    "jarvis-core",
+    "jarvis-daemon"
+]
+resolver = "2"
 
 [profile.release]
 opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
-
-[[bin]]
-name = "jarvis"
-path = "src/main.rs"

@@ -23,3 +23,4 @@ Cargo.lock
 # Build artifacts
 /release/
 /debug/
+.jarvis_history

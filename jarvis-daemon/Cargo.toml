@@ -1,0 +1,13 @@
+[package]
+name = "jarvis-daemon"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jarvis-core = { path = "../jarvis-core" }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+log = "0.4"
+env_logger = "0.10"
+libc = "0.2.189"
