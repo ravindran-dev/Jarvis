@@ -9,8 +9,115 @@ use ratatui::{
     Frame,
 };
 
-use crate::app::App;
+use crate::app::{App, Screen};
 use crate::utils::format;
+
+pub fn render_top_header(f: &mut Frame, app: &mut App, area: Rect) {
+    let os_name = sysinfo::System::name().unwrap_or_else(|| "Linux".to_string());
+    let time = chrono::Local::now().format("%H:%M:%S").to_string();
+    let user = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
+    let cwd = std::env::current_dir()
+        .unwrap_or_default()
+        .display()
+        .to_string();
+
+    let git_branch = if let Ok(head) = std::fs::read_to_string(".git/HEAD") {
+        if let Some(branch) = head.trim().strip_prefix("ref: refs/heads/") {
+            format!("  {} ", branch)
+        } else {
+            "  detached ".to_string()
+        }
+    } else {
+        "".to_string()
+    };
+
+    let header_text = format!(
+        " 󰣇 {} |  {} |  {} |  {} {}",
+        os_name, time, user, cwd, git_branch
+    );
+
+    let paragraph = Paragraph::new(Span::styled(
+        header_text,
+        Style::default()
+            .fg(Color::Black)
+            .bg(app.theme.primary)
+            .add_modifier(Modifier::BOLD),
+    ))
+    .alignment(Alignment::Left);
+
+    f.render_widget(paragraph, area);
+}
+
+pub fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
+    let mode = if app.input_mode || app.storage_search_enabled {
+        " [SEARCH MODE] "
+    } else {
+        " [NORMAL] "
+    };
+    let text = format!("{} | Q: Quit | /: Search | Enter: Select/Run", mode);
+
+    let paragraph = Paragraph::new(Span::styled(
+        text,
+        Style::default()
+            .fg(Color::Black)
+            .bg(app.theme.secondary)
+            .add_modifier(Modifier::BOLD),
+    ))
+    .alignment(Alignment::Right);
+
+    f.render_widget(paragraph, area);
+}
+
+pub fn render_sidebar(f: &mut Frame, app: &mut App, area: Rect) {
+    let screens = [
+        (Screen::Overview, "󰋔 OVERVIEW"),
+        (Screen::Cpu, " CPU"),
+        (Screen::Memory, "󰨅 MEMORY"),
+        (Screen::Storage, " STORAGE"),
+        (Screen::Processes, " PROCESSES"),
+        (Screen::Network, " NETWORK"),
+        (Screen::Services, "󰒓 SERVICES"),
+        (Screen::Users, " USERS"),
+        (Screen::Commands, " COMMANDS"),
+        (Screen::Events, "󰍨 EVENTS"),
+        (Screen::Settings, " SETTINGS"),
+        (Screen::Help, "󰞋 HELP"),
+    ];
+
+    let items: Vec<ListItem> = screens
+        .iter()
+        .map(|(screen, label)| {
+            let style = if app.current_screen == *screen {
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(app.theme.primary)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+            ListItem::new(Line::from(vec![Span::styled(
+                format!(" {} ", label),
+                style,
+            )]))
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(app.theme.primary)),
+        )
+        .highlight_style(
+            Style::default()
+                .fg(Color::Black)
+                .bg(app.theme.primary)
+                .add_modifier(Modifier::BOLD),
+        );
+
+    f.render_widget(list, area);
+}
 
 /// Create storage status widget
 pub fn create_storage_status(app: &App) -> Paragraph<'static> {
@@ -92,59 +199,45 @@ pub fn create_breadcrumb(app: &App) -> Paragraph<'_> {
 
 /// Create storage table widget
 pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static> {
-    let (results, title) = if let Some(current_path) = app.storage.get_current_path() {
-        let subdirs = app
-            .storage
-            .get_subdirectories(current_path.to_string_lossy().as_ref());
-        let path_display = current_path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("Directory");
-        (subdirs, format!(" Subdirectories of {} ", path_display))
-    } else {
-        (
-            app.storage.get_results(),
-            " Directory Sizes (Largest First) ".to_string(),
-        )
-    };
+    let disks = app.metrics.get_disk_info();
 
     // Filter results based on search buffer
-    let filtered_results: Vec<_> =
+    let filtered_disks: Vec<_> =
         if app.storage_search_enabled && !app.storage_search_buffer.is_empty() {
-            results
+            let search = app.storage_search_buffer.to_lowercase();
+            disks
                 .into_iter()
-                .filter(|item| {
-                    item.path
-                        .to_lowercase()
-                        .contains(&app.storage_search_buffer.to_lowercase())
+                .filter(|disk| {
+                    disk.name.to_lowercase().contains(&search)
+                        || disk.mount_point.to_lowercase().contains(&search)
+                        || disk.file_system.to_lowercase().contains(&search)
                 })
                 .collect()
         } else {
-            results
+            disks
         };
 
-    let rows: Vec<Row> = if filtered_results.is_empty() {
+    let rows: Vec<Row> = if filtered_disks.is_empty() {
         vec![Row::new(vec![
             Cell::from(if !app.storage_search_buffer.is_empty() {
                 format!("No matches for '{}'", app.storage_search_buffer)
-            } else if app.storage.get_current_path().is_some() {
-                "No subdirectories found. Press Backspace to go back.".to_string()
             } else {
-                "No data available - scanning in progress or press 'r' to scan".to_string()
+                "No disks found".to_string()
             }),
+            Cell::from(""),
+            Cell::from(""),
             Cell::from(""),
             Cell::from(""),
         ])]
     } else {
-        // Apply scroll offset to visible rows using actual available height
         let visible_start = app.scroll_offset;
-        let visible_end = (app.scroll_offset + available_height).min(filtered_results.len());
+        let visible_end = (app.scroll_offset + available_height).min(filtered_disks.len());
 
-        filtered_results
+        filtered_disks
             .iter()
             .enumerate()
             .filter(|(idx, _)| *idx >= visible_start && *idx < visible_end)
-            .map(|(idx, item)| {
+            .map(|(idx, disk)| {
                 let style = if idx == app.selected_index {
                     Style::default()
                         .fg(Color::Black)
@@ -154,10 +247,26 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
                     Style::default().fg(Color::White)
                 };
 
+                let usage_percent = (disk.used as f64 / disk.total as f64) * 100.0;
+                let bar = create_unicode_bar(usage_percent, 10);
+                let color = get_usage_color(usage_percent);
+
                 Row::new(vec![
-                    Cell::from(item.path.clone()),
-                    Cell::from(format::format_bytes(item.size)),
-                    Cell::from(format!("{}", item.file_count)),
+                    Cell::from(disk.mount_point.clone()),
+                    Cell::from(disk.name.clone()),
+                    Cell::from(disk.file_system.clone()),
+                    Cell::from(format!(
+                        "{:.1} / {:.1} GB",
+                        disk.used as f64 / 1_073_741_824.0,
+                        disk.total as f64 / 1_073_741_824.0
+                    )),
+                    Cell::from(Line::from(vec![
+                        Span::styled(bar, Style::default().fg(color)),
+                        Span::styled(
+                            format!(" {:.1}%", usage_percent),
+                            Style::default().fg(color),
+                        ),
+                    ])),
                 ])
                 .style(style)
             })
@@ -165,8 +274,10 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
     };
 
     let widths = [
-        Constraint::Percentage(60),
-        Constraint::Percentage(20),
+        Constraint::Percentage(25),
+        Constraint::Percentage(15),
+        Constraint::Percentage(15),
+        Constraint::Percentage(25),
         Constraint::Percentage(20),
     ];
 
@@ -176,10 +287,10 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(app.theme.primary))
                 .border_type(BorderType::Rounded)
-                .title(title),
+                .title(" Storage Mounts "),
         )
         .header(
-            Row::new(vec!["Path", "Size", "Files"])
+            Row::new(vec!["Mount Point", "Device", "Type", "Capacity", "Usage"])
                 .style(
                     Style::default()
                         .fg(app.theme.warning)
@@ -191,73 +302,76 @@ pub fn create_storage_table(app: &App, available_height: usize) -> Table<'static
 }
 
 /// Create CPU usage widget
-pub fn create_cpu_widget(app: &App) -> Paragraph<'static> {
+pub fn create_cpu_widget(app: &App) -> Table<'static> {
     let cpu_data = app.metrics.get_cpu_info();
 
     let overall_color = get_usage_color(cpu_data.usage as f64);
-    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 50);
+    let overall_bar = create_unicode_bar(cpu_data.usage as f64, 40);
 
-    let mut lines = vec![
-        Line::from(""),
-        Line::from(vec![
-            Span::styled(
-                "  CPU Usage:  ",
-                Style::default()
-                    .fg(app.theme.primary)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                format!("{:.1}%", cpu_data.usage),
-                Style::default()
-                    .fg(overall_color)
-                    .add_modifier(Modifier::BOLD),
-            ),
-        ]),
-        Line::from(""),
-        Line::from(vec![Span::styled(
-            overall_bar,
-            Style::default()
-                .fg(overall_color)
-                .add_modifier(Modifier::BOLD),
-        )]),
-    ];
-
-    for (i, core_usage) in cpu_data.per_core.iter().enumerate() {
-        let simple_bar = create_simple_bar(*core_usage as f64, 14);
-        let core_color = get_usage_color(*core_usage as f64);
-        lines.push(Line::from(vec![
-            Span::styled(
-                format!("   Core {:2} :  ", i),
-                Style::default().fg(Color::DarkGray),
-            ),
-            Span::styled(
-                simple_bar,
-                Style::default().fg(core_color).add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(
-                format!("   {:.1}%", core_usage),
-                Style::default().fg(core_color),
-            ),
-        ]));
-    }
-
-    lines.push(Line::from(""));
-
-    Paragraph::new(lines).alignment(Alignment::Center).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .border_style(
-                Style::default()
-                    .fg(app.theme.primary)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .border_type(BorderType::Rounded)
-            .title(Span::styled(
-                "  CPU CORES ",
+    let header_rows = vec![
+        Row::new(vec![
+            Cell::from(Span::styled(
+                "OVERALL CPU",
                 Style::default()
                     .fg(app.theme.primary)
                     .add_modifier(Modifier::BOLD),
             )),
+            Cell::from(Span::styled(
+                format!("{:.1}%", cpu_data.usage),
+                Style::default()
+                    .fg(overall_color)
+                    .add_modifier(Modifier::BOLD),
+            )),
+            Cell::from(Span::styled(
+                overall_bar,
+                Style::default()
+                    .fg(overall_color)
+                    .add_modifier(Modifier::BOLD),
+            )),
+        ]),
+        Row::new(vec![Cell::from(""), Cell::from(""), Cell::from("")]),
+    ];
+
+    let mut rows = header_rows;
+
+    let num_cores = cpu_data.per_core.len();
+    let num_cols = 4; // Display 4 cores per row
+
+    for chunk in cpu_data.per_core.chunks(num_cols).enumerate() {
+        let mut row_cells = Vec::new();
+        for (i, core_usage) in chunk.1.iter().enumerate() {
+            let core_idx = chunk.0 * num_cols + i;
+            let simple_bar = create_simple_bar(*core_usage as f64, 10);
+            let core_color = get_usage_color(*core_usage as f64);
+
+            row_cells.push(Cell::from(Line::from(vec![
+                Span::styled(
+                    format!("CPU {:2} ", core_idx),
+                    Style::default().fg(Color::DarkGray),
+                ),
+                Span::styled(
+                    format!("{:>5.1}% ", core_usage),
+                    Style::default().fg(core_color),
+                ),
+                Span::styled(simple_bar, Style::default().fg(core_color)),
+            ])));
+        }
+        // pad if needed
+        while row_cells.len() < num_cols {
+            row_cells.push(Cell::from(""));
+        }
+
+        rows.push(Row::new(row_cells));
+    }
+
+    let widths = vec![Constraint::Percentage(25); num_cols.max(3)];
+
+    Table::new(rows, widths).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(app.theme.primary))
+            .border_type(BorderType::Rounded)
+            .title("  CPU CORES "),
     )
 }
 
@@ -862,4 +976,36 @@ fn get_usage_color(percent: f64) -> Color {
         p if p < 75.0 => Color::Rgb(255, 100, 255), // Magenta glow
         _ => Color::Rgb(255, 0, 100),               // Hot pink/red
     }
+}
+
+pub fn create_settings_widget(app: &App) -> Paragraph<'static> {
+    Paragraph::new("Settings Screen under development.")
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .title(Span::styled(
+                    " SETTINGS ",
+                    Style::default()
+                        .add_modifier(Modifier::BOLD)
+                        .fg(app.theme.primary),
+                ))
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        )
+}
+
+pub fn create_help_widget(app: &App) -> Paragraph<'static> {
+    Paragraph::new("Help Screen under development.")
+        .alignment(Alignment::Center)
+        .block(
+            Block::default()
+                .title(Span::styled(
+                    " HELP ",
+                    Style::default()
+                        .add_modifier(Modifier::BOLD)
+                        .fg(app.theme.primary),
+                ))
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded),
+        )
 }

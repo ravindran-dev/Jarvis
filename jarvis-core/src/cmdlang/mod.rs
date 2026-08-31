@@ -41,6 +41,10 @@ impl ActionRegistry {
         self.actions.keys().cloned().collect()
     }
 
+    pub fn get_metadata(&self) -> Vec<crate::types::ActionMetadata> {
+        self.actions.values().map(|a| a.metadata().clone()).collect()
+    }
+
     pub fn requires_privilege(&self, name: &str) -> bool {
         if let Some(action) = self.actions.get(name) {
             action.metadata().requires_privilege

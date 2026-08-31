@@ -54,7 +54,10 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<io::Stdout>>) -> Res
     Ok(())
 }
 
-fn run_tui(engine: crate::shell::ExecutionEngine, session_context: SessionContext) -> Result<()> {
+fn run_tui(
+    engine: crate::shell::ExecutionEngine,
+    session_context: SessionContext,
+) -> Result<Option<String>> {
     let mut plugin_loader = PluginLoader::default();
     plugin_loader.validate_plugins_dir()?;
     let _ = plugin_loader.discover();
@@ -71,7 +74,7 @@ fn run_tui(engine: crate::shell::ExecutionEngine, session_context: SessionContex
         error!("Application error: {}", e);
         return Err(e);
     }
-    Ok(())
+    Ok(app.selected_command_to_run)
 }
 
 struct CliInteraction<'a> {
@@ -127,11 +130,17 @@ fn main() -> Result<()> {
         for part in command_line.split(';') {
             let mut interaction = CliInteraction { rl: None };
             if part.trim() == "dashboard" {
-                if let Err(e) = run_tui(
+                match run_tui(
                     crate::shell::ExecutionEngine::new(registry_arc.clone(), event_bus.clone()),
                     session_context.clone(),
                 ) {
-                    println!("JARVIS: Error running dashboard: {}", e);
+                    Ok(Some(_cmd)) => {
+                        println!("JARVIS: Command insertion not supported in one-shot mode.");
+                    }
+                    Ok(None) => {}
+                    Err(e) => {
+                        println!("JARVIS: Error running dashboard: {}", e);
+                    }
                 }
                 continue;
             }
@@ -153,8 +162,16 @@ fn main() -> Result<()> {
     println!("JARVIS System Control Environment");
     println!("Type 'dashboard' to enter TUI, or run normal commands.");
 
+    let mut initial_input: Option<String> = None;
+
     loop {
-        let readline = rl.readline("jarvis ❯ ");
+        let readline = if let Some(ref init) = initial_input {
+            rl.readline_with_initial("jarvis ❯ ", (init.as_str(), ""))
+        } else {
+            rl.readline("jarvis ❯ ")
+        };
+        initial_input = None;
+
         match readline {
             Ok(line) => {
                 let trimmed = line.trim();
@@ -167,14 +184,21 @@ fn main() -> Result<()> {
                 let mut should_exit = false;
                 for part in trimmed.split(';') {
                     if part.trim() == "dashboard" {
-                        if let Err(e) = run_tui(
+                        match run_tui(
                             crate::shell::ExecutionEngine::new(
                                 registry_arc.clone(),
                                 event_bus.clone(),
                             ),
                             session_context.clone(),
                         ) {
-                            println!("JARVIS: Error running dashboard: {}", e);
+                            Ok(Some(cmd)) => {
+                                initial_input = Some(cmd);
+                                break;
+                            }
+                            Ok(None) => {}
+                            Err(e) => {
+                                println!("JARVIS: Error running dashboard: {}", e);
+                            }
                         }
                         continue;
                     }

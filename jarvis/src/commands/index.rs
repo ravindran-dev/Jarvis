@@ -29,9 +29,10 @@ pub struct CommandIndex {
 }
 
 impl CommandIndex {
-    /// Create a new CommandIndex
-    pub fn new() -> Result<Self> {
-        let commands = Self::load_commands()?;
+    pub fn new(
+        registry: &std::sync::Arc<std::sync::Mutex<jarvis_core::cmdlang::ActionRegistry>>,
+    ) -> Result<Self> {
+        let commands = Self::load_commands(registry)?;
         let search_results = commands.clone();
 
         Ok(Self {
@@ -41,22 +42,43 @@ impl CommandIndex {
         })
     }
 
-    /// Load commands from embedded or external JSON file
-    fn load_commands() -> Result<Vec<Command>> {
+    /// Load commands from registry, optionally merging with config
+    fn load_commands(
+        registry: &std::sync::Arc<std::sync::Mutex<jarvis_core::cmdlang::ActionRegistry>>,
+    ) -> Result<Vec<Command>> {
+        let mut commands = Vec::new();
+
+        // Add all JARVIS actions dynamically
+        if let Ok(reg) = registry.lock() {
+            let metadata = reg.get_metadata();
+            for meta in metadata {
+                let cmd_str = format!("jarvis {}", meta.name);
+                commands.push(Command {
+                    command: cmd_str.clone(),
+                    description: meta.description,
+                    example: cmd_str,
+                    category: meta.category.to_uppercase(),
+                    dangerous: meta.destructive,
+                    tags: vec!["jarvis".to_string(), meta.name.clone()],
+                });
+            }
+        }
         if let Some(config_dir) = dirs::config_dir() {
             let config_path = config_dir.join("jarvis").join("commands.json");
             if config_path.exists() {
                 info!("Loading commands from: {}", config_path.display());
                 let content =
                     fs::read_to_string(&config_path).context("Failed to read commands.json")?;
-                let commands: Vec<Command> =
+                let loaded: Vec<Command> =
                     serde_json::from_str(&content).context("Failed to parse commands.json")?;
+                commands.extend(loaded);
                 return Ok(commands);
             }
         }
 
-        info!("Loading default embedded commands");
-        Ok(Self::get_default_commands())
+        info!("Loading default embedded system commands");
+        commands.extend(Self::get_default_commands());
+        Ok(commands)
     }
 
     /// Get default built-in commands

@@ -55,9 +55,16 @@ impl UserInteraction for TuiInteraction {
 /// Represents the different screens/views in the application
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
+    Overview,
+    Cpu,
+    Memory,
     Storage,
-    Metrics,
+    Processes,
+    Network,
+    Services,
+    Users,
     Commands,
+    Events,
     Settings,
     Help,
 }
@@ -66,22 +73,36 @@ impl Screen {
     /// Get the next screen in the navigation order
     pub fn next(&self) -> Self {
         match self {
-            Screen::Storage => Screen::Metrics,
-            Screen::Metrics => Screen::Commands,
-            Screen::Commands => Screen::Settings,
-            Screen::Settings => Screen::Storage,
-            Screen::Help => Screen::Storage,
+            Screen::Overview => Screen::Cpu,
+            Screen::Cpu => Screen::Memory,
+            Screen::Memory => Screen::Storage,
+            Screen::Storage => Screen::Processes,
+            Screen::Processes => Screen::Network,
+            Screen::Network => Screen::Services,
+            Screen::Services => Screen::Users,
+            Screen::Users => Screen::Commands,
+            Screen::Commands => Screen::Events,
+            Screen::Events => Screen::Settings,
+            Screen::Settings => Screen::Overview,
+            Screen::Help => Screen::Overview,
         }
     }
 
     /// Get the previous screen in the navigation order
     pub fn previous(&self) -> Self {
         match self {
-            Screen::Storage => Screen::Settings,
-            Screen::Metrics => Screen::Storage,
-            Screen::Commands => Screen::Metrics,
-            Screen::Settings => Screen::Commands,
-            Screen::Help => Screen::Settings,
+            Screen::Overview => Screen::Settings,
+            Screen::Cpu => Screen::Overview,
+            Screen::Memory => Screen::Cpu,
+            Screen::Storage => Screen::Memory,
+            Screen::Processes => Screen::Storage,
+            Screen::Network => Screen::Processes,
+            Screen::Services => Screen::Network,
+            Screen::Users => Screen::Services,
+            Screen::Commands => Screen::Users,
+            Screen::Events => Screen::Commands,
+            Screen::Settings => Screen::Events,
+            Screen::Help => Screen::Overview,
         }
     }
 }
@@ -144,6 +165,8 @@ pub struct App {
     pub network_connections: Vec<jarvis_core::types::NetworkConnection>,
     /// Network pane scroll offset
     pub network_scroll: usize,
+    /// The command the user selected to run, to be passed back to rustyline
+    pub selected_command_to_run: Option<String>,
 }
 
 impl App {
@@ -205,7 +228,7 @@ impl App {
 
         let metrics = SystemMetrics::new()?;
         let storage = StorageAnalyzer::new()?;
-        let commands = CommandIndex::new()?;
+        let commands = CommandIndex::new(&engine.registry)?;
         let plugins = PluginManager::new();
         let themes = Theme::all();
         let theme = themes[0].clone();
@@ -213,7 +236,7 @@ impl App {
 
         let mut app = Self {
             should_quit: false,
-            current_screen: Screen::Metrics,
+            current_screen: Screen::Overview,
             metrics,
             storage,
             commands,
@@ -240,6 +263,7 @@ impl App {
             session_context,
             network_connections: Vec::new(),
             network_scroll: 0,
+            selected_command_to_run: None,
         };
 
         if app.config.theme_index < app.themes.len() {
@@ -577,7 +601,7 @@ impl App {
 
     /// Move selection down
     fn move_selection_down(&mut self) {
-        if self.current_screen == Screen::Metrics {
+        if self.current_screen == Screen::Network {
             let max_items = self.network_connections.len();
             if max_items > 0 && self.network_scroll < max_items.saturating_sub(1) {
                 self.network_scroll += 1;
@@ -598,7 +622,7 @@ impl App {
 
     /// Move selection up
     fn move_selection_up(&mut self) {
-        if self.current_screen == Screen::Metrics {
+        if self.current_screen == Screen::Network {
             if self.network_scroll > 0 {
                 self.network_scroll -= 1;
             }
@@ -617,25 +641,19 @@ impl App {
     fn get_max_items(&self) -> usize {
         match self.current_screen {
             Screen::Storage => {
-                let items = if let Some(current_path) = self.storage.get_current_path() {
-                    self.storage
-                        .get_subdirectories(current_path.to_string_lossy().as_ref())
-                } else {
-                    self.storage.get_results()
-                };
-
-                // Filter by search buffer if enabled
+                let disks = self.metrics.get_disk_info();
                 if self.storage_search_enabled && !self.storage_search_buffer.is_empty() {
-                    items
+                    let search = self.storage_search_buffer.to_lowercase();
+                    disks
                         .into_iter()
-                        .filter(|item| {
-                            item.path
-                                .to_lowercase()
-                                .contains(&self.storage_search_buffer.to_lowercase())
+                        .filter(|disk| {
+                            disk.name.to_lowercase().contains(&search)
+                                || disk.mount_point.to_lowercase().contains(&search)
+                                || disk.file_system.to_lowercase().contains(&search)
                         })
                         .count()
                 } else {
-                    items.len()
+                    disks.len()
                 }
             }
             Screen::Commands => self.commands.get_results_count(),
@@ -647,114 +665,13 @@ impl App {
     fn handle_enter(&mut self) -> Result<()> {
         match self.current_screen {
             Screen::Storage => {
-                info!("Storage item selected: {}", self.selected_index);
-
-                let items = if let Some(current_path) = self.storage.get_current_path() {
-                    self.storage
-                        .get_subdirectories(current_path.to_string_lossy().as_ref())
-                } else {
-                    self.storage.get_results()
-                };
-
-                // Filter by search buffer if enabled
-                let filtered_items: Vec<_> =
-                    if self.storage_search_enabled && !self.storage_search_buffer.is_empty() {
-                        items
-                            .into_iter()
-                            .filter(|item| {
-                                item.path
-                                    .to_lowercase()
-                                    .contains(&self.storage_search_buffer.to_lowercase())
-                            })
-                            .collect()
-                    } else {
-                        items
-                    };
-
-                if let Some(item) = filtered_items.get(self.selected_index) {
-                    let subdirs = self.storage.get_subdirectories(&item.path);
-
-                    if subdirs.is_empty() {
-                        info!("No subdirectories; opening directory: {}", item.path);
-                        if let Err(e) = Self::open_directory_in_file_manager(&item.path) {
-                            info!("Failed to open file manager: {}", e);
-                        }
-                    } else {
-                        info!("Drilling down into: {}", item.path);
-                        self.storage
-                            .set_current_path(Some(PathBuf::from(&item.path)));
-                        self.storage_search_buffer.clear();
-                        self.reset_selection();
-                    }
-                }
+                // Storage screen is now just a view of mounts, no drill-down
             }
             Screen::Commands => {
                 if let Some(cmd) = self.commands.get_selected_command(self.selected_index) {
-                    info!("Executing command: {}", cmd.command);
-                    self.command_output.clear();
-                    self.command_output.push(format!("$ {}", cmd.command));
-
-                    if Self::is_interactive_command(&cmd.command) {
-                        self.command_output
-                            .push(String::from("[interactive] launching..."));
-                        let _ = disable_raw_mode();
-                        let status_res = if cfg!(target_os = "windows") {
-                            Command::new("cmd").args(["/C", &cmd.command]).status()
-                        } else {
-                            Command::new("sh").args(["-c", &cmd.command]).status()
-                        };
-                        let _ = enable_raw_mode();
-
-                        match status_res {
-                            Ok(status) => {
-                                let status_str = if status.success() {
-                                    "exit: 0".to_string()
-                                } else {
-                                    match status.code() {
-                                        Some(c) => format!("exit: {}", c),
-                                        None => "terminated".to_string(),
-                                    }
-                                };
-                                self.command_output.push(String::from(""));
-                                self.command_output.push(format!("[{}]", status_str));
-                            }
-                            Err(e) => {
-                                self.command_output.push(String::from(""));
-                                self.command_output.push(String::from(
-                                    "[error] Failed to launch interactive command:",
-                                ));
-                                self.command_output.push(e.to_string());
-                            }
-                        }
-                    } else {
-                        let mut interaction = TuiInteraction { output: Vec::new() };
-                        match self.engine.execute_line(
-                            &cmd.command,
-                            &mut self.session_context,
-                            &mut self.config,
-                            &mut interaction,
-                        ) {
-                            Ok(res) => {
-                                for line in interaction.output {
-                                    self.command_output.push(line);
-                                }
-                                if !res.output.is_empty() {
-                                    for line in res.output.lines() {
-                                        self.command_output.push(line.to_string());
-                                    }
-                                }
-                                if res.requires_exit {
-                                    self.should_quit = true;
-                                }
-                            }
-                            Err(e) => {
-                                for line in interaction.output {
-                                    self.command_output.push(line);
-                                }
-                                self.command_output.push(format!("[error] {}", e));
-                            }
-                        }
-                    }
+                    info!("User selected command to insert: {}", cmd.command);
+                    self.selected_command_to_run = Some(cmd.command.clone());
+                    self.should_quit = true;
                 }
             }
             _ => {}
@@ -775,10 +692,9 @@ impl App {
     fn handle_refresh(&mut self) -> Result<()> {
         match self.current_screen {
             Screen::Storage => {
-                info!("Starting storage scan");
-                self.storage.start_scan()?;
+                // Now handled automatically via sysinfo update in background
             }
-            Screen::Metrics => {
+            Screen::Cpu | Screen::Memory | Screen::Network | Screen::Overview => {
                 self.metrics.update()?;
             }
             _ => {}

@@ -19,7 +19,9 @@ pub struct MemoryInfo {
 
 #[derive(Debug, Clone)]
 pub struct DiskInfo {
+    pub name: String,
     pub mount_point: String,
+    pub file_system: String,
     pub total: u64,
     pub used: u64,
 }
@@ -105,7 +107,9 @@ impl SystemMetrics {
                 let used = total.saturating_sub(available);
 
                 DiskInfo {
+                    name: disk.name().to_string_lossy().to_string(),
                     mount_point: disk.mount_point().to_string_lossy().to_string(),
+                    file_system: disk.file_system().to_string_lossy().to_string(),
                     total,
                     used,
                 }
