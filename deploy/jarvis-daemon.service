@@ -1,0 +1,44 @@
+[Unit]
+Description=JARVIS Privileged Operations Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/jarvis-daemon
+Restart=on-failure
+RestartSec=5s
+
+# Run as root to allow cgroup v2, systemctl, and ufw
+User=root
+Group=root
+
+# The socket will be created in this directory. 
+# Systemd manages this dir automatically, removing it when the service stops.
+RuntimeDirectory=jarvis
+RuntimeDirectoryMode=0755
+
+# The environment variable will be loaded safely from a configuration file
+EnvironmentFile=-/etc/jarvis/daemon.env
+
+# --- Security Sandboxing ---
+
+# Make /usr, /boot, /etc read-only
+ProtectSystem=strict
+# Whitelist required paths for cgroup v2, IPC, and UFW rules
+ReadWritePaths=/sys/fs/cgroup /run/jarvis /etc/ufw
+
+# Block access to user home directories
+ProtectHome=yes
+
+# Isolate /tmp from the rest of the system
+PrivateTmp=yes
+
+# Prevent privilege escalation
+NoNewPrivileges=true
+
+# Restrict to capabilities actually needed by the daemon
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_NET_ADMIN CAP_KILL CAP_DAC_OVERRIDE
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

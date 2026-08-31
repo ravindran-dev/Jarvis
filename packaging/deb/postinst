@@ -1,0 +1,28 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "configure" ]; then
+    # Create configuration directory
+    mkdir -p /etc/jarvis
+    chmod 755 /etc/jarvis
+
+    # Safely generate daemon.env if it doesn't exist
+    if [ ! -f /etc/jarvis/daemon.env ]; then
+        # Try to find a non-root user (e.g., UID 1000)
+        TARGET_UID=$(awk -F: '$3 >= 1000 && $3 < 60000 {print $3; exit}' /etc/passwd)
+        if [ -z "$TARGET_UID" ]; then
+            TARGET_UID=1000 # Fallback
+        fi
+        echo "JARVIS_AUTHORIZED_UID=$TARGET_UID" > /etc/jarvis/daemon.env
+        chmod 644 /etc/jarvis/daemon.env
+    fi
+
+    # Reload systemd and start the service
+    if [ -x "/usr/bin/systemctl" ]; then
+        systemctl daemon-reload
+        systemctl enable jarvis-daemon
+        systemctl start jarvis-daemon || true
+    fi
+fi
+
+exit 0

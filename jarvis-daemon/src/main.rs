@@ -115,10 +115,21 @@ fn handle_client(mut stream: UnixStream, registry: &ActionRegistry) {
     // Peer validation
     match get_peer_uid(&stream) {
         Ok(uid) => {
-            // For JARVIS, we expect either root (0) or the intended user (e.g. 1000).
-            // This is a basic authorization mechanism.
             let my_uid = unsafe { libc::getuid() };
-            if uid != 0 && uid != my_uid {
+
+            let mut authorized = uid == 0 || uid == my_uid;
+
+            if !authorized {
+                if let Ok(auth_uid_str) = std::env::var("JARVIS_AUTHORIZED_UID") {
+                    if let Ok(auth_uid) = auth_uid_str.parse::<u32>() {
+                        if uid == auth_uid {
+                            authorized = true;
+                        }
+                    }
+                }
+            }
+
+            if !authorized {
                 error!("Unauthorized connection attempt from UID {}", uid);
                 return;
             }
@@ -165,9 +176,8 @@ fn main() -> Result<()> {
         .filter_level(log::LevelFilter::Info)
         .init();
 
-    // Use /var/run/jarvis if root, else use ~/.jarvis/daemon.sock for non-root testing.
     let socket_dir = if unsafe { libc::geteuid() } == 0 {
-        "/var/run/jarvis".to_string()
+        "/run/jarvis".to_string()
     } else {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
         format!("{}/.jarvis", home)
@@ -188,6 +198,24 @@ fn main() -> Result<()> {
     // Set socket permissions to 0660
     use std::os::unix::fs::PermissionsExt;
     fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o660))?;
+
+    // Give ownership to the authorized user so they can write to the socket
+    if unsafe { libc::geteuid() } == 0 {
+        if let Ok(auth_uid_str) = std::env::var("JARVIS_AUTHORIZED_UID") {
+            if let Ok(auth_uid) = auth_uid_str.parse::<u32>() {
+                unsafe {
+                    // chown the socket to the authorized uid, keep group as root
+                    libc::chown(
+                        std::ffi::CString::new(socket_path.clone())
+                            .unwrap()
+                            .as_ptr(),
+                        auth_uid,
+                        0,
+                    );
+                }
+            }
+        }
+    }
 
     info!("JARVIS Privileged Daemon listening on {}", socket_path);
 

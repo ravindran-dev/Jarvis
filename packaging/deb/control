@@ -1,0 +1,10 @@
+Package: jarvis
+Version: 1.0.0
+Architecture: amd64
+Maintainer: Ravindran S <ravindrans.dev@gmail.com>
+Depends: libc6, systemd
+Section: admin
+Priority: optional
+Description: JARVIS - Linux System Monitoring and Privileged Operations Daemon
+ JARVIS provides a terminal UI and a privileged daemon to monitor
+ and manage Linux system resources, networks, and services securely.

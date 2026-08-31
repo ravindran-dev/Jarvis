@@ -120,10 +120,14 @@ pub struct DaemonClient {
 
 impl DaemonClient {
     pub fn get_socket_path() -> String {
-        // In a real production environment, this would be /var/run/jarvis.sock
-        // For development/testing without root, we use ~/.jarvis/jarvis.sock
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-        format!("{}/.jarvis/jarvis.sock", home)
+        if std::path::Path::new("/run/jarvis/jarvis.sock").exists() {
+            "/run/jarvis/jarvis.sock".to_string()
+        } else if std::path::Path::new("/var/run/jarvis/jarvis.sock").exists() {
+            "/var/run/jarvis/jarvis.sock".to_string()
+        } else {
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+            format!("{}/.jarvis/jarvis.sock", home)
+        }
     }
 
     #[allow(clippy::new_without_default)]

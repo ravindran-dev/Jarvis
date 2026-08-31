@@ -1,0 +1,11 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "deconfigure" ]; then
+    if [ -x "/usr/bin/systemctl" ]; then
+        systemctl stop jarvis-daemon || true
+        systemctl disable jarvis-daemon || true
+    fi
+fi
+
+exit 0
