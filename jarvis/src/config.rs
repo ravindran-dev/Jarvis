@@ -21,7 +21,13 @@ pub struct Config {
     pub theme_index: usize,
     pub storage_min_threshold_mb: u64,
     pub storage_threads: Option<usize>,
-    pub enabled_plugins: Vec<String>,
+
+    // New JARVIS settings
+    pub welcome_screen: bool,
+    pub prompt_style: String,
+    pub auto_refresh: bool,
+    pub shell: String,
+    pub terminal: String,
 }
 
 impl Default for Config {
@@ -34,7 +40,11 @@ impl Default for Config {
             theme_index: 0,
             storage_min_threshold_mb: 1,
             storage_threads: None,
-            enabled_plugins: Vec::new(),
+            welcome_screen: true,
+            prompt_style: "Portal".to_string(),
+            auto_refresh: true,
+            shell: "Zsh".to_string(),
+            terminal: "Kitty".to_string(),
         }
     }
 }
@@ -42,9 +52,10 @@ impl Default for Config {
 impl Config {
     fn config_path() -> PathBuf {
         let mut dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"));
-        dir.push(".jarvis");
+        dir.push(".config");
+        dir.push("jarvis");
         fs::create_dir_all(&dir).ok();
-        dir.push("config.json");
+        dir.push("config.toml");
         dir
     }
 
@@ -53,7 +64,7 @@ impl Config {
         if let Ok(mut f) = fs::File::open(&path) {
             let mut s = String::new();
             if f.read_to_string(&mut s).is_ok() {
-                if let Ok(cfg) = serde_json::from_str::<Config>(&s) {
+                if let Ok(cfg) = toml::from_str::<Config>(&s) {
                     return cfg;
                 }
             }
@@ -66,7 +77,7 @@ impl Config {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
-        let data = serde_json::to_string_pretty(self).unwrap_or_else(|_| "{}".to_string());
+        let data = toml::to_string_pretty(self).unwrap_or_else(|_| "".to_string());
         let mut f = fs::File::create(path)?;
         f.write_all(data.as_bytes())
     }

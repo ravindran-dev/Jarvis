@@ -1,0 +1,13 @@
+refresh_interval_ms = 1000
+log_level = "info"
+theme_index = 0
+storage_min_threshold_mb = 1
+welcome_screen = true
+prompt_style = "Portal"
+auto_refresh = true
+shell = "Zsh"
+terminal = "Kitty"
+
+[macros]
+
+[aliases]

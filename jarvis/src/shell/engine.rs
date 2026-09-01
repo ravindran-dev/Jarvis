@@ -342,22 +342,11 @@ impl ExecutionEngine {
                 }
             }
             Intent::PassThrough { command } => {
-                match Command::new("sh").arg("-c").arg(&command).output() {
-                    Ok(out) => {
-                        let stdout = String::from_utf8_lossy(&out.stdout);
-                        let stderr = String::from_utf8_lossy(&out.stderr);
-                        if !stdout.is_empty() {
-                            output.push_str(&stdout);
-                        }
-                        if !stderr.is_empty() {
-                            if !output.is_empty() {
-                                output.push('\n');
-                            }
-                            output.push_str(&stderr);
-                        }
-                        if !out.status.success() {
-                            let code = out.status.code().unwrap_or(1);
-                            output.push_str(&format!("\nCommand exited with code {}", code));
+                let shell = std::env::var("SHELL").unwrap_or_else(|_| "zsh".to_string());
+                match Command::new(&shell).arg("-c").arg(&command).status() {
+                    Ok(status) => {
+                        if !status.success() {
+                            let code = status.code().unwrap_or(1);
                             return Err(anyhow::anyhow!("Command failed with code {}", code));
                         }
                     }

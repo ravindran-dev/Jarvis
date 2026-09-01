@@ -8,8 +8,21 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-echo "Building release binaries..."
-cargo build --workspace --release
+BUILD=0
+if [ "$1" = "--build" ]; then
+  BUILD=1
+fi
+
+if [ "$BUILD" -eq 1 ]; then
+  echo "Building release binaries..."
+  cargo build --workspace --release
+elif [ ! -f "target/release/jarvis" ] || [ ! -f "target/release/jarvis-daemon" ]; then
+  echo "Error: Release binaries not found in target/release/."
+  echo "Run 'cargo build --workspace --release' first, or pass --build to this script."
+  exit 1
+else
+  echo "Using existing release binaries in target/release/."
+fi
 
 echo "Installing binaries to /usr/bin/..."
 cp target/release/jarvis /usr/bin/jarvis

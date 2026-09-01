@@ -42,7 +42,10 @@ impl ActionRegistry {
     }
 
     pub fn get_metadata(&self) -> Vec<crate::types::ActionMetadata> {
-        self.actions.values().map(|a| a.metadata().clone()).collect()
+        self.actions
+            .values()
+            .map(|a| a.metadata().clone())
+            .collect()
     }
 
     pub fn requires_privilege(&self, name: &str) -> bool {

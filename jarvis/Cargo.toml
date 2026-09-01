@@ -52,8 +52,9 @@ libloading = "0.8"
 
 # Bounded threadpool
 threadpool = "1.8"
-rustyline = "18.0.1"
+
 jarvis-core = { version = "0.1.0", path = "../jarvis-core" }
+toml = "1.1.4"
 
 [dev-dependencies]
 tempfile = "3.8"

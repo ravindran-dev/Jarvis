@@ -1,10 +1,8 @@
 use anyhow::Result;
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 use jarvis_core::events::JarvisEvent;
 use log::info;
 use ratatui::{backend::Backend, Terminal};
-use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant};
 
@@ -12,7 +10,11 @@ use crate::commands::CommandIndex;
 use crate::config::Config;
 use crate::plugins::PluginManager;
 use crate::shell::{ExecutionEngine, SessionContext, UserInteraction};
-use crate::system::{metrics::SystemMetrics, storage::StorageAnalyzer};
+use crate::system::metrics::SystemMetrics;
+use crate::system::processes::ProcessTracker;
+use crate::system::services::ServiceTracker;
+use crate::system::storage::StorageAnalyzer;
+use crate::system::users::UserTracker;
 use crate::theme::Theme;
 use crate::ui::layout;
 
@@ -69,6 +71,13 @@ pub enum Screen {
     Help,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConfirmAction {
+    None,
+    KillProcess(u32, String),
+    ServiceAction(String, String), // action (start/stop/restart/enable/disable), service name
+}
+
 impl Screen {
     /// Get the next screen in the navigation order
     pub fn next(&self) -> Self {
@@ -117,6 +126,12 @@ pub struct App {
     pub metrics: SystemMetrics,
     /// Storage analyzer
     pub storage: StorageAnalyzer,
+    /// Process tracker
+    pub process_tracker: ProcessTracker,
+    /// User tracker
+    pub user_tracker: UserTracker,
+    /// Service tracker
+    pub service_tracker: ServiceTracker,
     /// Command index and search
     pub commands: CommandIndex,
     /// Plugin manager
@@ -167,6 +182,8 @@ pub struct App {
     pub network_scroll: usize,
     /// The command the user selected to run, to be passed back to rustyline
     pub selected_command_to_run: Option<String>,
+    /// Active confirmation action
+    pub confirm_action: ConfirmAction,
 }
 
 impl App {
@@ -223,11 +240,18 @@ impl App {
         candidates.iter().any(|c| lc.contains(c))
     }
     /// Create a new App instance
-    pub fn new(engine: ExecutionEngine, session_context: SessionContext) -> Result<Self> {
+    pub fn new(
+        engine: ExecutionEngine,
+        session_context: SessionContext,
+        initial_screen: Screen,
+    ) -> Result<Self> {
         info!("Initializing Jarvis application");
 
         let metrics = SystemMetrics::new()?;
         let storage = StorageAnalyzer::new()?;
+        let process_tracker = ProcessTracker::new();
+        let user_tracker = UserTracker::new();
+        let service_tracker = ServiceTracker::new();
         let commands = CommandIndex::new(&engine.registry)?;
         let plugins = PluginManager::new();
         let themes = Theme::all();
@@ -236,9 +260,12 @@ impl App {
 
         let mut app = Self {
             should_quit: false,
-            current_screen: Screen::Overview,
+            current_screen: initial_screen,
             metrics,
             storage,
+            process_tracker,
+            user_tracker,
+            service_tracker,
             commands,
             plugins,
             theme,
@@ -264,6 +291,7 @@ impl App {
             network_connections: Vec::new(),
             network_scroll: 0,
             selected_command_to_run: None,
+            confirm_action: ConfirmAction::None,
         };
 
         if app.config.theme_index < app.themes.len() {
@@ -334,8 +362,37 @@ impl App {
         Ok(())
     }
 
-    /// Handle keyboard input
     fn handle_key_event(&mut self, key: KeyEvent) -> Result<()> {
+        if self.confirm_action != ConfirmAction::None {
+            match key.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Enter => {
+                    match &self.confirm_action {
+                        ConfirmAction::KillProcess(pid, _) => {
+                            let _ = std::process::Command::new("kill")
+                                .arg("-9")
+                                .arg(pid.to_string())
+                                .status();
+                        }
+                        ConfirmAction::ServiceAction(action, name) => {
+                            let _ = std::process::Command::new("sudo")
+                                .arg("systemctl")
+                                .arg(action)
+                                .arg(name)
+                                .status();
+                            self.service_tracker = crate::system::services::ServiceTracker::new();
+                        }
+                        _ => {}
+                    }
+                    self.confirm_action = ConfirmAction::None;
+                }
+                KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                    self.confirm_action = ConfirmAction::None;
+                }
+                _ => {}
+            }
+            return Ok(());
+        }
+
         if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
             self.should_quit = true;
             return Ok(());
@@ -404,13 +461,13 @@ impl App {
             const THRESHOLD_STEPS_MB: [u64; 5] = [1, 10, 100, 500, 1024];
 
             match key.code {
-                KeyCode::Char('j') | KeyCode::Down => {
+                KeyCode::Down => {
                     if self.settings_selected < 3 {
                         self.settings_selected += 1;
                     }
                     return Ok(());
                 }
-                KeyCode::Char('k') | KeyCode::Up => {
+                KeyCode::Up => {
                     if self.settings_selected > 0 {
                         self.settings_selected -= 1;
                     }
@@ -499,47 +556,18 @@ impl App {
         }
 
         match key.code {
-            KeyCode::Tab => {
-                self.current_screen = self.current_screen.next();
-                self.reset_selection();
-            }
-            KeyCode::BackTab => {
-                self.current_screen = self.current_screen.previous();
-                self.reset_selection();
+            KeyCode::Tab | KeyCode::BackTab => {
+                // Disable screen cycling for integrated terminal mode
             }
 
-            KeyCode::Char('h') => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    self.previous_theme();
-                } else if self.current_screen != Screen::Settings {
-                    self.current_screen = self.current_screen.previous();
-                    self.reset_selection();
-                }
+            KeyCode::Char('h') | KeyCode::Left | KeyCode::Char('l') | KeyCode::Right => {
+                // Disable arrow cycling
             }
-            KeyCode::Left => {
-                if self.current_screen != Screen::Settings {
-                    self.current_screen = self.current_screen.previous();
-                    self.reset_selection();
-                }
-            }
-            KeyCode::Char('l') => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
-                    self.next_theme();
-                } else if self.current_screen != Screen::Settings {
-                    self.current_screen = self.current_screen.next();
-                    self.reset_selection();
-                }
-            }
-            KeyCode::Right => {
-                if self.current_screen != Screen::Settings {
-                    self.current_screen = self.current_screen.next();
-                    self.reset_selection();
-                }
-            }
-            KeyCode::Char('j') | KeyCode::Down => {
+
+            KeyCode::Down => {
                 self.move_selection_down();
             }
-            KeyCode::Char('k') | KeyCode::Up => {
+            KeyCode::Up => {
                 self.move_selection_up();
             }
 
@@ -560,12 +588,64 @@ impl App {
                 }
             }
             KeyCode::Char('/') => {
-                if self.current_screen == Screen::Commands {
+                if matches!(
+                    self.current_screen,
+                    Screen::Commands | Screen::Processes | Screen::Network | Screen::Storage
+                ) {
                     self.input_mode = true;
+                    self.reset_selection();
+                }
+            }
+            KeyCode::Char('s') => {
+                if self.current_screen == Screen::Services {
+                    let mut services = self.service_tracker.get_services();
+                    if !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        services.retain(|s| s.name.to_lowercase().contains(&search));
+                    }
+                    if let Some(s) = services.get(self.selected_index) {
+                        if s.status == "Running" {
+                            self.confirm_action =
+                                ConfirmAction::ServiceAction("stop".to_string(), s.name.clone());
+                        } else {
+                            self.confirm_action =
+                                ConfirmAction::ServiceAction("start".to_string(), s.name.clone());
+                        }
+                    }
                 }
             }
             KeyCode::Char('r') => {
-                self.handle_refresh()?;
+                if self.current_screen == Screen::Services {
+                    let mut services = self.service_tracker.get_services();
+                    if !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        services.retain(|s| s.name.to_lowercase().contains(&search));
+                    }
+                    if let Some(s) = services.get(self.selected_index) {
+                        self.confirm_action =
+                            ConfirmAction::ServiceAction("restart".to_string(), s.name.clone());
+                    }
+                } else {
+                    self.handle_refresh()?;
+                }
+            }
+            KeyCode::Char('e') => {
+                if self.current_screen == Screen::Services {
+                    let mut services = self.service_tracker.get_services();
+                    if !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        services.retain(|s| s.name.to_lowercase().contains(&search));
+                    }
+                    if let Some(s) = services.get(self.selected_index) {
+                        if s.enabled == "enabled" {
+                            self.confirm_action =
+                                ConfirmAction::ServiceAction("disable".to_string(), s.name.clone());
+                        } else {
+                            self.confirm_action =
+                                ConfirmAction::ServiceAction("enable".to_string(), s.name.clone());
+                        }
+                    }
+                }
             }
             KeyCode::Char('t') | KeyCode::Char('T') => {
                 self.next_theme();
@@ -584,6 +664,28 @@ impl App {
                 } else {
                     self.current_screen = Screen::Help;
                     self.reset_selection();
+                }
+            }
+
+            KeyCode::Char('k') => {
+                if self.current_screen == Screen::Processes {
+                    let mut procs = self.process_tracker.get_processes();
+                    if !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        procs.retain(|p| {
+                            p.name.to_lowercase().contains(&search)
+                                || p.user.to_lowercase().contains(&search)
+                                || p.cmd.to_lowercase().contains(&search)
+                                || p.pid.to_string().contains(&search)
+                        });
+                    }
+                    if let Some(p) = procs.get(self.selected_index) {
+                        self.confirm_action = ConfirmAction::KillProcess(p.pid, p.name.clone());
+                    }
+                } else if self.current_screen == Screen::Settings {
+                    self.move_selection_up();
+                } else {
+                    self.move_selection_up();
                 }
             }
 
@@ -641,20 +743,47 @@ impl App {
     fn get_max_items(&self) -> usize {
         match self.current_screen {
             Screen::Storage => {
-                let disks = self.metrics.get_disk_info();
-                if self.storage_search_enabled && !self.storage_search_buffer.is_empty() {
-                    let search = self.storage_search_buffer.to_lowercase();
-                    disks
-                        .into_iter()
-                        .filter(|disk| {
-                            disk.name.to_lowercase().contains(&search)
-                                || disk.mount_point.to_lowercase().contains(&search)
-                                || disk.file_system.to_lowercase().contains(&search)
-                        })
-                        .count()
+                if let Some(current_path) = self.storage.get_current_path() {
+                    let items = self
+                        .storage
+                        .get_subdirectories(&current_path.to_string_lossy());
+                    if self.storage_search_enabled && !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        items
+                            .into_iter()
+                            .filter(|d| d.path.to_lowercase().contains(&search))
+                            .count()
+                    } else {
+                        items.len()
+                    }
                 } else {
-                    disks.len()
+                    let disks = self.metrics.get_disk_info();
+                    if self.storage_search_enabled && !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        disks
+                            .into_iter()
+                            .filter(|disk| {
+                                disk.name.to_lowercase().contains(&search)
+                                    || disk.mount_point.to_lowercase().contains(&search)
+                            })
+                            .count()
+                    } else {
+                        disks.len()
+                    }
                 }
+            }
+            Screen::Processes => {
+                let mut procs = self.process_tracker.get_processes();
+                if !self.input_buffer.is_empty() {
+                    let search = self.input_buffer.to_lowercase();
+                    procs.retain(|p| {
+                        p.name.to_lowercase().contains(&search)
+                            || p.user.to_lowercase().contains(&search)
+                            || p.cmd.to_lowercase().contains(&search)
+                            || p.pid.to_string().contains(&search)
+                    });
+                }
+                procs.len()
             }
             Screen::Commands => self.commands.get_results_count(),
             _ => 0,
@@ -665,7 +794,39 @@ impl App {
     fn handle_enter(&mut self) -> Result<()> {
         match self.current_screen {
             Screen::Storage => {
-                // Storage screen is now just a view of mounts, no drill-down
+                if let Some(current_path) = self.storage.get_current_path() {
+                    let items = self
+                        .storage
+                        .get_subdirectories(&current_path.to_string_lossy());
+                    let mut filtered = items.clone();
+                    if self.storage_search_enabled && !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        filtered.retain(|d| d.path.to_lowercase().contains(&search));
+                    }
+                    if let Some(item) = filtered.get(self.selected_index) {
+                        self.storage
+                            .set_current_path(Some(std::path::PathBuf::from(&item.path)));
+                        self.reset_selection();
+                        self.input_buffer.clear();
+                    }
+                } else {
+                    // We are at root mounts
+                    let disks = self.metrics.get_disk_info();
+                    let mut filtered = disks.clone();
+                    if self.storage_search_enabled && !self.input_buffer.is_empty() {
+                        let search = self.input_buffer.to_lowercase();
+                        filtered.retain(|d| {
+                            d.name.to_lowercase().contains(&search)
+                                || d.mount_point.to_lowercase().contains(&search)
+                        });
+                    }
+                    if let Some(disk) = filtered.get(self.selected_index) {
+                        self.storage
+                            .set_current_path(Some(std::path::PathBuf::from(&disk.mount_point)));
+                        self.reset_selection();
+                        self.input_buffer.clear();
+                    }
+                }
             }
             Screen::Commands => {
                 if let Some(cmd) = self.commands.get_selected_command(self.selected_index) {

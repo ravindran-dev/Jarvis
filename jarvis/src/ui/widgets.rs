@@ -13,13 +13,21 @@ use crate::app::{App, Screen};
 use crate::utils::format;
 
 pub fn render_top_header(f: &mut Frame, app: &mut App, area: Rect) {
-    let os_name = sysinfo::System::name().unwrap_or_else(|| "Linux".to_string());
-    let time = chrono::Local::now().format("%H:%M:%S").to_string();
+    let os_name = sysinfo::System::name().unwrap_or_else(|| "Ubuntu".to_string());
+    let time = chrono::Local::now().format("%H:%M").to_string();
     let user = std::env::var("USER").unwrap_or_else(|_| "user".to_string());
+    let host = sysinfo::System::host_name().unwrap_or_else(|| "host".to_string());
     let cwd = std::env::current_dir()
         .unwrap_or_default()
         .display()
         .to_string();
+    // Simplify cwd to ~ if it's home
+    let home = std::env::var("HOME").unwrap_or_default();
+    let display_cwd = if cwd.starts_with(&home) {
+        cwd.replacen(&home, "~", 1)
+    } else {
+        cwd
+    };
 
     let git_branch = if let Ok(head) = std::fs::read_to_string(".git/HEAD") {
         if let Some(branch) = head.trim().strip_prefix("ref: refs/heads/") {
@@ -28,95 +36,62 @@ pub fn render_top_header(f: &mut Frame, app: &mut App, area: Rect) {
             "  detached ".to_string()
         }
     } else {
-        "".to_string()
+        "  ~ ".to_string() // mock shows ~ for git if none
     };
 
-    let header_text = format!(
-        " 󰣇 {} |  {} |  {} |  {} {}",
-        os_name, time, user, cwd, git_branch
-    );
+    let spans = vec![
+        Span::styled(
+            format!("  {} ", os_name),
+            Style::default().fg(Color::Rgb(255, 140, 0)),
+        ),
+        Span::raw(" | "),
+        Span::styled(format!("  {} ", time), Style::default().fg(Color::Cyan)),
+        Span::raw(" | "),
+        Span::styled(
+            format!("  {}@{} ", user, host),
+            Style::default().fg(Color::Green),
+        ),
+        Span::raw(" | "),
+        Span::styled(
+            format!("  {} ", display_cwd),
+            Style::default().fg(Color::Yellow),
+        ),
+        Span::raw(" | "),
+        Span::styled(git_branch, Style::default().fg(Color::Magenta)),
+        Span::raw(" | "),
+        Span::styled(
+            "   100% ".to_string(), // Fake battery for aesthetics as requested in mock
+            Style::default().fg(Color::Green),
+        ),
+    ];
 
-    let paragraph = Paragraph::new(Span::styled(
-        header_text,
-        Style::default()
-            .fg(Color::Black)
-            .bg(app.theme.primary)
-            .add_modifier(Modifier::BOLD),
-    ))
-    .alignment(Alignment::Left);
+    let paragraph = Paragraph::new(Line::from(spans))
+        .alignment(Alignment::Center) // Center aligned in the new mock
+        .style(Style::default().bg(app.theme.background));
 
     f.render_widget(paragraph, area);
 }
 
 pub fn render_status_bar(f: &mut Frame, app: &mut App, area: Rect) {
-    let mode = if app.input_mode || app.storage_search_enabled {
-        " [SEARCH MODE] "
-    } else {
-        " [NORMAL] "
-    };
-    let text = format!("{} | Q: Quit | /: Search | Enter: Select/Run", mode);
-
-    let paragraph = Paragraph::new(Span::styled(
-        text,
-        Style::default()
-            .fg(Color::Black)
-            .bg(app.theme.secondary)
-            .add_modifier(Modifier::BOLD),
-    ))
-    .alignment(Alignment::Right);
-
-    f.render_widget(paragraph, area);
-}
-
-pub fn render_sidebar(f: &mut Frame, app: &mut App, area: Rect) {
-    let screens = [
-        (Screen::Overview, "󰋔 OVERVIEW"),
-        (Screen::Cpu, " CPU"),
-        (Screen::Memory, "󰨅 MEMORY"),
-        (Screen::Storage, " STORAGE"),
-        (Screen::Processes, " PROCESSES"),
-        (Screen::Network, " NETWORK"),
-        (Screen::Services, "󰒓 SERVICES"),
-        (Screen::Users, " USERS"),
-        (Screen::Commands, " COMMANDS"),
-        (Screen::Events, "󰍨 EVENTS"),
-        (Screen::Settings, " SETTINGS"),
-        (Screen::Help, "󰞋 HELP"),
+    let spans = vec![
+        Span::styled(
+            " ⓘ JARVIS Terminal Portal ",
+            Style::default().fg(Color::Cyan),
+        ),
+        Span::raw("        |        "),
+        Span::styled(" v1.0.0 ", Style::default().fg(Color::Cyan)),
+        Span::raw("        |        "),
+        Span::styled(
+            " 󰚩 Built for Developers ",
+            Style::default().fg(Color::DarkGray),
+        ),
     ];
 
-    let items: Vec<ListItem> = screens
-        .iter()
-        .map(|(screen, label)| {
-            let style = if app.current_screen == *screen {
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(app.theme.primary)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default().fg(Color::White)
-            };
-            ListItem::new(Line::from(vec![Span::styled(
-                format!(" {} ", label),
-                style,
-            )]))
-        })
-        .collect();
+    let paragraph = Paragraph::new(Line::from(spans))
+        .alignment(Alignment::Center)
+        .style(Style::default().bg(app.theme.background));
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(app.theme.primary)),
-        )
-        .highlight_style(
-            Style::default()
-                .fg(Color::Black)
-                .bg(app.theme.primary)
-                .add_modifier(Modifier::BOLD),
-        );
-
-    f.render_widget(list, area);
+    f.render_widget(paragraph, area);
 }
 
 /// Create storage status widget
@@ -334,7 +309,7 @@ pub fn create_cpu_widget(app: &App) -> Table<'static> {
 
     let mut rows = header_rows;
 
-    let num_cores = cpu_data.per_core.len();
+    let _num_cores = cpu_data.per_core.len();
     let num_cols = 4; // Display 4 cores per row
 
     for chunk in cpu_data.per_core.chunks(num_cols).enumerate() {
